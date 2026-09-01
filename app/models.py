@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 class AnalyzeRequest(BaseModel):
     ticker: str = Field(min_length=1, max_length=20)
-    mode: Literal["snapshot", "deep"] = "snapshot"
+    mode: Literal["screen", "deep"] = "screen"
     depth: Literal["standard", "debate"] = "standard"
 
 
@@ -66,7 +66,7 @@ class DeepAnalysis(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     ticker: str
-    mode: Literal["snapshot", "deep"]
+    mode: Literal["screen", "deep"]
     depth: Literal["standard", "debate"]
     metrics: MetricSnapshot
     scores: CategoryScores
