@@ -46,3 +46,14 @@ def test_methodology_page_is_served():
     assert "Watch" in response.text
     assert "Avoid" in response.text
     assert "DCF" in response.text
+
+
+def test_roadmap_page_is_served():
+    client = TestClient(app)
+    response = client.get("/roadmap")
+
+    assert response.status_code == 200
+    assert "Build trust first. Add breadth second." in response.text
+    assert "Transparent DCF" in response.text
+    assert "Watchlist" in response.text
+    assert "Portfolio research" in response.text
