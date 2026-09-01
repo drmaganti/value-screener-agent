@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Methodology | Ask Warren</title>
+  <meta name="description" content="How Ask Warren evaluates business quality, valuation, risk, evidence, DCF scenarios and research verdicts." />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07100d;
+      --panel: #0c1713;
+      --panel-2: #101d18;
+      --border: #21332c;
+      --text: #f4f7f5;
+      --muted: #9eb0a8;
+      --green: #38d678;
+      --green-soft: #183b28;
+      --amber: #f3bd4c;
+      --red: #f16d70;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 70% -20%, #123426 0, var(--bg) 36%), var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    a { color: inherit; text-decoration: none; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 230px 1fr; }
+    aside {
+      position: sticky; top: 0; height: 100vh;
+      border-right: 1px solid var(--border);
+      background: rgba(5, 13, 10, .92);
+      padding: 28px 18px;
+    }
+    .brand { display:flex; gap:10px; align-items:center; font-weight:750; font-size:21px; margin-bottom:34px; }
+    .brand-mark { width:32px; height:32px; display:grid; place-items:center; border:1px solid #2e7048; border-radius:9px; color:var(--green); }
+    nav { display:grid; gap:7px; }
+    .nav-item { padding:11px 12px; border-radius:9px; color:#c8d3ce; display:flex; justify-content:space-between; align-items:center; }
+    .nav-item.active { background:#123d26; color:white; }
+    .soon { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#80938a; }
+    .method { margin-top:18px; padding-top:18px; border-top:1px solid var(--border); }
+    main { min-width:0; }
+    header {
+      padding: 22px 40px;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      background:rgba(7,16,13,.72); backdrop-filter: blur(10px);
+    }
+    header .eyebrow { color:var(--muted); font-size:13px; }
+    .content { max-width:1160px; margin:0 auto; padding:58px 42px 80px; }
+    .hero { max-width:840px; margin-bottom:42px; }
+    .hero h1 { font-size:52px; line-height:1.04; margin:0 0 18px; letter-spacing:-.04em; }
+    .hero p { font-size:19px; color:#b8c5bf; max-width:760px; }
+    .status { display:inline-flex; gap:8px; align-items:center; border:1px solid var(--border); background:#0c1b14; padding:8px 11px; border-radius:999px; color:#b6c8bf; font-size:12px; margin-bottom:18px; }
+    .dot { width:7px; height:7px; border-radius:50%; background:var(--green); }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin:26px 0 38px; }
+    .card { border:1px solid var(--border); background:linear-gradient(180deg,rgba(16,29,24,.96),rgba(10,20,16,.96)); border-radius:15px; padding:24px; }
+    .card h2 { margin:0 0 8px; font-size:20px; }
+    .card p, .card li { color:#b8c5bf; }
+    .kicker { color:var(--green); text-transform:uppercase; letter-spacing:.1em; font-size:11px; font-weight:800; }
+    .weights { display:grid; grid-template-columns:1fr auto; gap:7px 18px; margin-top:16px; }
+    .weights span:nth-child(even) { color:var(--green); font-variant-numeric:tabular-nums; }
+    section { margin:52px 0; }
+    section > h2 { font-size:30px; margin:0 0 8px; letter-spacing:-.025em; }
+    section > p.lead { color:#aebcb5; max-width:800px; margin-top:0; }
+    .flow { display:grid; grid-template-columns:repeat(5,1fr); align-items:center; gap:9px; margin-top:24px; }
+    .flow-box { min-height:112px; display:flex; flex-direction:column; justify-content:center; border:1px solid var(--border); border-radius:12px; padding:14px; background:#0b1712; text-align:center; }
+    .flow-box strong { display:block; margin-bottom:5px; }
+    .flow-box small { color:var(--muted); }
+    .arrow { color:#557367; text-align:center; }
+    .verdicts { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .verdict { border-radius:15px; padding:23px; border:1px solid var(--border); background:#0c1713; }
+    .verdict h3 { margin:0 0 4px; font-size:22px; }
+    .verdict .analogue { color:var(--muted); font-size:12px; margin-bottom:14px; }
+    .verdict.attractive h3 { color:var(--green); }
+    .verdict.watch h3 { color:var(--amber); }
+    .verdict.avoid h3 { color:var(--red); }
+    table { width:100%; border-collapse:collapse; margin-top:20px; overflow:hidden; border-radius:12px; }
+    th, td { text-align:left; padding:13px 14px; border-bottom:1px solid var(--border); }
+    th { color:#e9efec; font-size:12px; text-transform:uppercase; letter-spacing:.06em; background:#0e1c17; }
+    td { color:#b7c4be; background:#0a1511; }
+    .notice { border-left:3px solid var(--green); padding:18px 20px; background:#0c1b14; color:#bdc9c3; border-radius:0 10px 10px 0; }
+    .footer { color:#73867d; font-size:12px; border-top:1px solid var(--border); padding-top:26px; margin-top:58px; }
+    @media (max-width: 900px) {
+      .shell { display:block; }
+      aside { position:relative; width:100%; height:auto; border-right:0; border-bottom:1px solid var(--border); }
+      nav { grid-template-columns:repeat(2,1fr); }
+      header { display:none; }
+      .content { padding:38px 20px 60px; }
+      .hero h1 { font-size:40px; }
+      .grid,.verdicts { grid-template-columns:1fr; }
+      .flow { grid-template-columns:1fr; }
+      .arrow { transform:rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="brand"><div class="brand-mark">↗</div>Ask Warren</div>
+    <nav aria-label="Primary navigation">
+      <a class="nav-item" href="/">Analyze</a>
+      <span class="nav-item">Watchlist <span class="soon">Coming soon</span></span>
+      <span class="nav-item">Screener <span class="soon">Coming soon</span></span>
+      <span class="nav-item">History <span class="soon">Coming soon</span></span>
+      <span class="nav-item">Portfolio <span class="soon">Coming soon</span></span>
+      <div class="method">
+        <a class="nav-item active" href="/methodology">Methodology</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main>
+    <header>
+      <div><strong>Methodology</strong><div class="eyebrow">How Warren reaches a research conclusion</div></div>
+      <div class="eyebrow">Research software · Not financial advice</div>
+    </header>
+
+    <div class="content">
+      <div class="hero">
+        <div class="status"><span class="dot"></span> Transparent by design</div>
+        <h1>Understand the reasoning, not just the rating.</h1>
+        <p>Ask Warren combines structured financial data, deterministic scoring, source-grounded evidence and competing investment perspectives. Every conclusion should be explainable, challengeable and capable of changing when the facts change.</p>
+      </div>
+
+      <div class="grid">
+        <article class="card">
+          <div class="kicker">Structured analysis</div>
+          <h2>Six lenses, one research framework</h2>
+          <p>The current model evaluates a company across six categories. These weights reflect a long-term fundamental orientation and remain subject to calibration.</p>
+          <div class="weights">
+            <span>Fundamentals</span><span>30%</span>
+            <span>Valuation</span><span>25%</span>
+            <span>Business quality</span><span>20%</span>
+            <span>Growth</span><span>10%</span>
+            <span>Risk resilience</span><span>10%</span>
+            <span>Market context</span><span>5%</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="kicker">Evidence discipline</div>
+          <h2>Facts come from data, not model memory</h2>
+          <p>Numerical metrics come from configured data providers. Deep analysis also uses an evidence packet containing available filing metadata, news headlines, estimate revisions, earnings history and macro observations.</p>
+          <p>Missing evidence lowers confidence. Warren should not invent what a filing or article says when the underlying content was not retrieved.</p>
+        </article>
+      </div>
+
+      <section>
+        <h2>How Deep analysis works</h2>
+        <p class="lead">Warren separates fact collection from interpretation, and separates the initial Bull, Bear and Risk perspectives before combining them.</p>
+        <div class="flow" aria-label="Deep analysis workflow">
+          <div class="flow-box"><strong>1. Metrics</strong><small>Fundamentals, valuation, quality, growth and risk</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-box"><strong>2. Evidence</strong><small>Filings, headlines, estimates, earnings and macro</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-box"><strong>3. Debate</strong><small>Bull · Bear · Risk reviewer</small></div>
+        </div>
+        <div class="flow" style="grid-template-columns:1fr 70px 1fr;max-width:690px;margin-left:auto;margin-right:auto">
+          <div class="flow-box"><strong>4. Synthesis</strong><small>Evidence weighted above rhetoric</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-box"><strong>5. Verdict</strong><small>Conclusion, confidence and what changes the view</small></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>The three Warren verdicts</h2>
+        <p class="lead">These deliberately map to the familiar Buy / Hold / Sell mental model without assuming the user already owns the stock.</p>
+        <div class="verdicts">
+          <article class="verdict attractive"><h3>Attractive</h3><div class="analogue">Closest analogue: Buy</div><p>The current combination of business quality, valuation and risk/reward is sufficiently favorable to merit serious consideration.</p></article>
+          <article class="verdict watch"><h3>Watch</h3><div class="analogue">Closest analogue: Hold / Wait</div><p>The thesis is credible, but valuation, unresolved risk, incomplete evidence or a mixed setup keeps the opportunity from being compelling today.</p></article>
+          <article class="verdict avoid"><h3>Avoid</h3><div class="analogue">Closest analogue: Sell / Do not initiate</div><p>Current business deterioration, valuation, balance-sheet weakness, structural risk or evidence quality makes the risk/reward unattractive.</p></article>
+        </div>
+        <p class="notice"><strong>Confidence is separate from the verdict.</strong> High / Medium / Low confidence describes the strength and completeness of the evidence behind Warren's current conclusion—not the probability of a positive stock return.</p>
+      </section>
+
+      <section>
+        <h2>DCF: transparent assumptions, not a magic number</h2>
+        <p class="lead">Discounted cash flow is one valuation lens. The calculation should be deterministic and its assumptions visible. Warren can explain or challenge assumptions, but the LLM does not perform free-form valuation arithmetic.</p>
+        <table>
+          <thead><tr><th>Input</th><th>What Warren uses</th></tr></thead>
+          <tbody>
+            <tr><td>Base cash flow</td><td>Normalized free cash flow</td></tr>
+            <tr><td>Forecast</td><td>Explicit multi-year FCF growth assumptions</td></tr>
+            <tr><td>Discount rate</td><td>WACC / required return assumption</td></tr>
+            <tr><td>Terminal value</td><td>Transparent terminal-growth or appropriate exit assumption</td></tr>
+            <tr><td>Capital structure</td><td>Net cash or debt and diluted share count</td></tr>
+          </tbody>
+        </table>
+        <div class="grid">
+          <article class="card"><div class="kicker">Bear</div><h2>More conservative</h2><p>Lower growth or margins and/or a higher discount rate.</p></article>
+          <article class="card"><div class="kicker">Base</div><h2>Central case</h2><p>Warren's best-supported central assumptions based on available evidence.</p></article>
+          <article class="card"><div class="kicker">Bull</div><h2>Stronger execution</h2><p>Higher sustainable growth or margins and/or lower perceived risk.</p></article>
+        </div>
+        <p class="notice">A DCF estimate is a model output, not a prediction of where the stock price will trade. Small changes in discount rate and terminal growth can materially change fair value, so Ask Warren should show sensitivity rather than false precision.</p>
+      </section>
+
+      <section>
+        <h2>What would change Warren's view?</h2>
+        <p class="lead">A useful thesis must be falsifiable. Every Deep analysis should identify specific developments that could move the verdict between Attractive, Watch and Avoid.</p>
+        <div class="grid">
+          <article class="card"><h2>Examples</h2><ul><li>valuation entering or leaving a reasonable range;</li><li>sustained margin deterioration or recovery;</li><li>material earnings-estimate revisions;</li><li>liquidity, leverage or refinancing changes;</li><li>regulatory outcomes or moat deterioration;</li><li>new filings or earnings evidence that changes the thesis.</li></ul></article>
+          <article class="card"><h2>Missing evidence matters</h2><p>Warren currently has important evidence limitations, including full filing text, complete licensed article content and deeper peer/industry history. These gaps should be visible through source status and confidence instead of hidden.</p></article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Methodology evolves</h2>
+        <p class="lead">Scores, thresholds and valuation models should improve through evidence and evaluation—not by making outputs sound more convincing.</p>
+        <p class="notice">Material changes to weights, factor definitions, DCF assumptions, evidence rules or verdict logic should create a new methodology version so historical analyses remain interpretable.</p>
+      </section>
+
+      <div class="footer">Ask Warren is for informational and research purposes only and does not provide personalized financial advice. Current scores are heuristic and require further calibration and out-of-sample validation.</div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
