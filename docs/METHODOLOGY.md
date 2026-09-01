@@ -54,7 +54,7 @@ Current absolute bands are placeholders. Planned improvements include:
 - company-history-relative valuation;
 - earnings/FCF normalization;
 - capital-intensity-aware metrics;
-- analyst-estimate revisions as a separate signal rather than an implicit valuation input.
+- analyst-estimate revisions as a separate Screen signal rather than an implicit valuation input.
 
 ## Business quality
 
@@ -98,50 +98,83 @@ Technical context should not turn a weak business into a high-quality investment
 
 Warren does not replace missing metrics with invented values. Category averages use available components; if no component is available the current neutral fallback is 50.
 
-Deep mode receives the list of missing metrics and is instructed to reduce confidence when evidence is insufficient.
+Deep mode receives the list of missing metrics plus evidence-source availability and is instructed to reduce confidence when evidence is insufficient.
 
 ## Deep methodology
 
 Deep mode is inspired by TradingAgents but adapted for fundamental stock research.
 
-### Step 1: verified evidence
+### Step 1: structured company metrics
 
-The LLM receives structured metrics and deterministic scores. Numerical claims should originate from providers, not model memory.
+Warren retrieves a `MetricSnapshot` and computes deterministic category scores. Numerical company metrics originate from the configured market-data provider, not model memory.
 
-### Step 2: independent perspectives
+### Step 2: source-attributed evidence packet
+
+v0.3 adds an explicit `EvidenceBundle` before any LLM reasoning.
+
+Current evidence sources:
+
+- **SEC EDGAR:** recent material filing metadata (`10-K`, `10-Q`, `8-K`, `20-F`, `40-F`, `6-K` and amendments) for exact US ticker mappings;
+- **Yahoo Finance/yfinance:** recent news headlines;
+- **Yahoo Finance/yfinance:** EPS estimate trend/revision counts and forward earnings/revenue growth fields when available;
+- **Yahoo Finance/yfinance:** recent actual-vs-estimate earnings history;
+- **FRED:** selected macro observations when `FRED_API_KEY` is configured.
+
+Every provider reports an explicit source status. One failed source does not cause the other evidence to disappear.
+
+### Step 3: evidence-depth rules
+
+Warren distinguishes the authority of a source from the depth actually retrieved:
+
+- SEC filing metadata proves that a filing/form/date exists; it does **not** prove the contents of that filing were read.
+- A Yahoo headline is headline-level evidence; the model may not infer the unseen article body.
+- Structured estimate revisions, earnings-history fields and FRED observations may be directly compared as supplied values.
+- Missing/unavailable sources should lower confidence instead of being filled from model memory.
+
+These restrictions are embedded in the Deep prompts.
+
+### Step 4: independent perspectives
 
 Three calls run concurrently:
 
 - Bull analyst: strongest supported positive case and its weaknesses.
 - Bear analyst: strongest supported negative case and its weaknesses.
-- Risk reviewer: risks, missing evidence and risk summary.
+- Risk reviewer: risks, missing evidence, stale/incomplete-source concerns and risk summary.
 
 They do not see each other's arguments.
 
-### Step 3: final synthesis
+### Step 5: final synthesis
 
 The final evaluator sees:
 
-- original structured evidence;
+- original structured metrics;
 - deterministic scores;
+- the exact source-attributed evidence packet;
 - Bull output;
 - Bear output;
 - Risk output.
 
-It is told to synthesize rather than vote and to distinguish business quality from valuation.
+It is told to synthesize rather than vote, weight source facts above agent rhetoric, distinguish business quality from valuation, and reduce confidence when important evidence is missing.
 
-## Evidence that is not yet included
+## Evidence still not included
 
-Deep mode should not be considered complete until verified additional evidence sources are added, especially:
+v0.3 materially improves grounding but Deep should still not be considered complete. Important missing areas include:
 
-- SEC/SEDAR+/company filings;
-- earnings releases and guidance;
-- current news;
-- macro/industry context;
-- estimate revisions;
-- peer/sector comparisons.
+- actual SEC filing text/XBRL facts and management commentary rather than metadata alone;
+- SEDAR+ / Canadian issuer filing evidence;
+- earnings-release and guidance text;
+- full licensed news/article content;
+- industry/peer context;
+- point-in-time historical estimates;
+- explicit evidence IDs/citations at individual generated-claim level.
 
-Until those exist, prompts explicitly prohibit inventing those facts.
+## Estimate revisions and Screen
+
+Estimate revisions are currently **Deep evidence only**. They are not yet part of the deterministic Screen score. Adding them to Screen belongs in a methodology change that is backtested/calibrated rather than silently changing the current score.
+
+## Macro scope
+
+The initial FRED bundle is intentionally small and generic (rates, unemployment, CPI context). Macro relevance varies materially by company and sector. Warren should not give generic macro signals large deterministic weight until sector/company sensitivity is validated.
 
 ## Methodology versioning
 
