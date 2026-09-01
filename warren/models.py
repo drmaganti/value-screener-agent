@@ -122,6 +122,7 @@ class MacroEvidence(BaseModel):
     label: str
     value: float
     prior_value: float | None = None
+    prior_period: str | None = None
     as_of: date | None = None
     units: str | None = None
     source: str = "FRED"
