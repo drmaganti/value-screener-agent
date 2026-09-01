@@ -43,7 +43,7 @@ This file records decisions that should not be rediscovered each time Warren is 
 
 ## D-007: Provider independence
 
-**Decision:** Yahoo and Gemini are adapters behind protocols.
+**Decision:** Yahoo, SEC, FRED and Gemini are adapters behind protocols.
 
 **Reason:** data licensing, cost, model quality and vendor availability will change.
 
@@ -64,3 +64,27 @@ This file records decisions that should not be rediscovered each time Warren is 
 **Decision:** use Warren internally while trademark clearance remains incomplete.
 
 **Reason:** preliminary searches identified historically/currently relevant financial/software marks. See `NAMING.md`.
+
+## D-011: Deep evidence is explicit and source-attributed
+
+**Decision:** Deep receives a typed `EvidenceBundle` collected before LLM reasoning. The same packet is passed to Bull, Bear, Risk and Final and returned to the caller.
+
+**Reason:** users and evals need to know what information the model actually had. Provenance must not exist only inside a prompt.
+
+## D-012: Retrieval depth limits what the model may claim
+
+**Decision:** Warren treats filing metadata as filing metadata and news headlines as headlines. A high-authority source does not authorize the model to infer content that was not retrieved.
+
+**Reason:** claiming unseen filing/article contents is a hallucination even when the referenced source itself is reputable.
+
+## D-013: Partial evidence failure degrades confidence, not the entire request
+
+**Decision:** independent evidence providers report `ok`, `partial`, `unavailable` or `error`. Deep continues with remaining evidence unless the core market-data or DeepAnalysisProvider fails.
+
+**Reason:** filings, news, estimates and macro sources have different availability and failure modes. All-or-nothing retrieval would make Warren unnecessarily brittle and hide useful partial evidence.
+
+## D-014: Estimate revisions are Deep evidence before they become a Screen factor
+
+**Decision:** v0.3 exposes estimate trends/revisions to Deep but does not change deterministic Screen weights.
+
+**Reason:** adding a factor to Screen is a methodology change and should be supported by point-in-time calibration/backtesting rather than architectural enthusiasm alone.
