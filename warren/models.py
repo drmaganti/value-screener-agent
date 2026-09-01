@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+from datetime import date, datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -67,6 +68,86 @@ class ScreenResponse(BaseModel):
     results: list[ScreenResult] = Field(default_factory=list)
 
 
+class SourceStatus(BaseModel):
+    source: str
+    status: Literal["ok", "partial", "unavailable", "error"]
+    detail: str | None = None
+
+
+class FilingEvidence(BaseModel):
+    form: str
+    filed_at: date | None = None
+    accession_number: str | None = None
+    primary_document: str | None = None
+    url: str | None = None
+    source: str = "SEC EDGAR"
+
+
+class NewsEvidence(BaseModel):
+    title: str
+    publisher: str | None = None
+    published_at: datetime | None = None
+    url: str | None = None
+    source: str = "Yahoo Finance"
+
+
+class EstimateRevisionEvidence(BaseModel):
+    horizon: str
+    analyst_count: int | None = None
+    eps_current: float | None = None
+    eps_7d_ago: float | None = None
+    eps_30d_ago: float | None = None
+    eps_60d_ago: float | None = None
+    eps_90d_ago: float | None = None
+    eps_up_7d: int | None = None
+    eps_down_7d: int | None = None
+    eps_up_30d: int | None = None
+    eps_down_30d: int | None = None
+    earnings_growth: float | None = None
+    revenue_growth: float | None = None
+    source: str = "Yahoo Finance"
+
+
+class EarningsHistoryEvidence(BaseModel):
+    period: datetime | None = None
+    eps_estimate: float | None = None
+    eps_actual: float | None = None
+    eps_difference: float | None = None
+    surprise_percent: float | None = None
+    source: str = "Yahoo Finance"
+
+
+class MacroEvidence(BaseModel):
+    series_id: str
+    label: str
+    value: float
+    prior_value: float | None = None
+    as_of: date | None = None
+    units: str | None = None
+    source: str = "FRED"
+
+
+class EvidenceBundle(BaseModel):
+    filings: list[FilingEvidence] = Field(default_factory=list)
+    news: list[NewsEvidence] = Field(default_factory=list)
+    estimate_revisions: list[EstimateRevisionEvidence] = Field(default_factory=list)
+    earnings_history: list[EarningsHistoryEvidence] = Field(default_factory=list)
+    macro: list[MacroEvidence] = Field(default_factory=list)
+    source_status: list[SourceStatus] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    def merge(self, other: "EvidenceBundle") -> "EvidenceBundle":
+        return EvidenceBundle(
+            filings=[*self.filings, *other.filings],
+            news=[*self.news, *other.news],
+            estimate_revisions=[*self.estimate_revisions, *other.estimate_revisions],
+            earnings_history=[*self.earnings_history, *other.earnings_history],
+            macro=[*self.macro, *other.macro],
+            source_status=[*self.source_status, *other.source_status],
+            metadata={**self.metadata, **other.metadata},
+        )
+
+
 class DeepAnalysis(BaseModel):
     thesis: str
     positives: list[str]
@@ -83,6 +164,7 @@ class DeepResponse(BaseModel):
     ticker: str
     metrics: MetricSnapshot
     scores: CategoryScores
+    evidence: EvidenceBundle = Field(default_factory=EvidenceBundle)
     missing_data: list[str] = Field(default_factory=list)
     analysis: DeepAnalysis
     model: str | None = None
