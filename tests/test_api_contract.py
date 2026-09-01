@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import pytest
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from app.main import app
 from app.models import AnalyzeRequest
 
 
@@ -32,3 +34,15 @@ def test_valid_mode_shapes():
 
     assert screen.mode == "screen"
     assert deep.mode == "deep"
+
+
+def test_methodology_page_is_served():
+    client = TestClient(app)
+    response = client.get("/methodology")
+
+    assert response.status_code == 200
+    assert "Understand the reasoning, not just the rating." in response.text
+    assert "Attractive" in response.text
+    assert "Watch" in response.text
+    assert "Avoid" in response.text
+    assert "DCF" in response.text
