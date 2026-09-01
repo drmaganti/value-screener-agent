@@ -88,7 +88,13 @@ Risk reviewer: {json.dumps(risk)}
 
 Synthesize rather than vote. Weight source facts above agent rhetoric. A strong company can still be an unattractive stock if valuation or expectations are unfavorable. If filings are only metadata or news is only headline-level, state the limitation rather than pretending the underlying documents were read. Reduce confidence when important source_status entries are unavailable/error or when key metrics are missing.
 
+The verdict MUST be exactly one of:
+- "attractive" — favorable quality + valuation + risk/reward at the current price;
+- "watch" — credible thesis but not compelling enough today, or evidence is mixed/incomplete;
+- "avoid" — business, valuation, balance-sheet, structural-risk or evidence concerns make the setup unattractive.
+Do not output buy, hold, sell, strong buy, neutral, outperform, underperform or any other verdict vocabulary.
+
 Return JSON only with exactly:
-{{"thesis":"string","positives":[3-5 strings],"concerns":[3-5 strings],"bull_case":[2-4 strings],"bear_case":[2-4 strings],"risks":[2-5 strings],"what_would_change_view":[2-4 strings],"verdict":"string","confidence":"low|medium|high"}}."""
+{{"thesis":"string","positives":[3-5 strings],"concerns":[3-5 strings],"bull_case":[2-4 strings],"bear_case":[2-4 strings],"risks":[2-5 strings],"what_would_change_view":[2-4 strings],"verdict":"attractive|watch|avoid","confidence":"low|medium|high"}}."""
         final = await self._generate(final_prompt)
         return DeepAnalysis.model_validate(final), self.model
