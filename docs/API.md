@@ -27,6 +27,7 @@ Rules:
 - `top_n`: 1-100, default 25.
 - `min_score`: 0-100, default 0.
 - Duplicate tickers are removed while preserving first appearance.
+- Screen does not invoke the DeepAnalysisProvider or EvidenceProvider.
 
 ### Response
 
@@ -76,6 +77,7 @@ Rules:
 - `ticker` is required.
 - `tickers` must not be supplied.
 - Deep mode uses the configured DeepAnalysisProvider.
+- Deep mode may use a configured EvidenceProvider. Evidence-source failures are represented in `evidence.source_status` and do not automatically fail the whole analysis.
 
 ### Response
 
@@ -85,6 +87,58 @@ Rules:
   "ticker": "NVDA",
   "metrics": {},
   "scores": {},
+  "evidence": {
+    "filings": [
+      {
+        "form": "10-Q",
+        "filed_at": "2026-01-01",
+        "accession_number": "...",
+        "primary_document": "...",
+        "url": "...",
+        "source": "SEC EDGAR"
+      }
+    ],
+    "news": [
+      {
+        "title": "...",
+        "publisher": "...",
+        "published_at": "2026-01-01T12:00:00Z",
+        "url": "...",
+        "source": "Yahoo Finance"
+      }
+    ],
+    "estimate_revisions": [
+      {
+        "horizon": "+1y",
+        "analyst_count": 0,
+        "eps_current": 0,
+        "eps_30d_ago": 0,
+        "eps_up_30d": 0,
+        "eps_down_30d": 0,
+        "earnings_growth": 0,
+        "revenue_growth": 0,
+        "source": "Yahoo Finance"
+      }
+    ],
+    "earnings_history": [],
+    "macro": [
+      {
+        "series_id": "DGS10",
+        "label": "US 10-year Treasury yield",
+        "value": 0,
+        "prior_value": 0,
+        "prior_period": "previous observation",
+        "as_of": "2026-01-01",
+        "units": "percent",
+        "source": "FRED"
+      }
+    ],
+    "source_status": [
+      {"source": "SEC EDGAR", "status": "ok", "detail": "..."},
+      {"source": "FRED", "status": "unavailable", "detail": "FRED_API_KEY is not configured; macro evidence skipped."}
+    ],
+    "metadata": {}
+  },
   "missing_data": [],
   "analysis": {
     "thesis": "...",
@@ -101,6 +155,16 @@ Rules:
   "disclaimer": "For research purposes only. Not financial advice."
 }
 ```
+
+Values above are schema examples, not live financial data.
+
+### Evidence semantics
+
+- `filings` currently contains SEC filing metadata only. It does not mean Warren has read the filing body.
+- `news` currently contains source-attributed headlines only. It does not mean Warren has retrieved full article text.
+- `estimate_revisions` and `earnings_history` contain structured Yahoo/yfinance values when available.
+- `macro` contains configured FRED series when `FRED_API_KEY` is available.
+- `source_status` is part of the research result. Clients should surface unavailable/error states rather than hiding them.
 
 ## Health
 
@@ -119,6 +183,8 @@ Rules:
 - `422`: invalid request shape (Pydantic/FastAPI validation).
 - `502`: upstream market-data or Deep-analysis execution failure.
 - `503`: Deep mode requested without valid LLM/provider configuration.
+
+Individual evidence-provider failures normally remain a `200` Deep response with explicit `source_status` error/unavailable entries.
 
 ## Compatibility policy
 
