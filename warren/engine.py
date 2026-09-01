@@ -1,0 +1,90 @@
+from __future__ import annotations
+
+import asyncio
+
+from .models import DeepResponse, MetricSnapshot, ScreenRequest, ScreenResponse, ScreenResult
+from .protocols import DeepAnalysisProvider, MarketDataProvider
+from .scoring import score_metrics
+
+
+_IGNORED_MISSING = {"ticker", "company_name", "sector", "industry", "currency"}
+
+
+def missing_fields(metrics: MetricSnapshot) -> list[str]:
+    return [
+        field
+        for field, value in metrics.model_dump().items()
+        if field not in _IGNORED_MISSING and value is None
+    ]
+
+
+class Warren:
+    """Reusable stock-intelligence engine.
+
+    Screen mode is deterministic and LLM-free. Deep mode runs independent
+    bull, bear and risk analysis before final synthesis through the configured
+    DeepAnalysisProvider.
+    """
+
+    def __init__(
+        self,
+        market_data: MarketDataProvider,
+        deep_analysis: DeepAnalysisProvider | None = None,
+        screen_concurrency: int = 8,
+    ):
+        self.market_data = market_data
+        self.deep_analysis = deep_analysis
+        self.screen_concurrency = max(1, screen_concurrency)
+
+    async def screen(
+        self,
+        tickers: list[str],
+        *,
+        top_n: int = 25,
+        min_score: float = 0,
+    ) -> ScreenResponse:
+        request = ScreenRequest(tickers=tickers, top_n=top_n, min_score=min_score)
+        symbols = list(dict.fromkeys(t.strip().upper() for t in request.tickers if t.strip()))
+        semaphore = asyncio.Semaphore(self.screen_concurrency)
+
+        async def one(symbol: str):
+            async with semaphore:
+                try:
+                    metrics = await asyncio.to_thread(self.market_data.fetch_metrics, symbol)
+                    scores = score_metrics(metrics)
+                    return ScreenResult(
+                        ticker=metrics.ticker,
+                        company_name=metrics.company_name,
+                        sector=metrics.sector,
+                        price=metrics.price,
+                        scores=scores,
+                        missing_data_count=len(missing_fields(metrics)),
+                    )
+                except Exception:
+                    return symbol
+
+        raw = await asyncio.gather(*(one(symbol) for symbol in symbols))
+        results = [item for item in raw if isinstance(item, ScreenResult)]
+        failures = [item for item in raw if isinstance(item, str)]
+        results = [item for item in results if item.scores.overall >= request.min_score]
+        results.sort(key=lambda item: item.scores.overall, reverse=True)
+        return ScreenResponse(
+            screened_count=len(symbols),
+            failed_tickers=failures,
+            results=results[: request.top_n],
+        )
+
+    async def deep(self, ticker: str) -> DeepResponse:
+        if self.deep_analysis is None:
+            raise RuntimeError("A DeepAnalysisProvider must be configured for deep mode")
+        metrics = await asyncio.to_thread(self.market_data.fetch_metrics, ticker.strip().upper())
+        scores = score_metrics(metrics)
+        analysis, model = await self.deep_analysis.analyze(metrics, scores)
+        return DeepResponse(
+            ticker=metrics.ticker,
+            metrics=metrics,
+            scores=scores,
+            missing_data=missing_fields(metrics),
+            analysis=analysis,
+            model=model,
+        )
