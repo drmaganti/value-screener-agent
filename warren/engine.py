@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 
-from .models import DeepResponse, MetricSnapshot, ScreenRequest, ScreenResponse, ScreenResult
-from .protocols import DeepAnalysisProvider, MarketDataProvider
+from .models import DeepResponse, EvidenceBundle, MetricSnapshot, ScreenRequest, ScreenResponse, ScreenResult, SourceStatus
+from .protocols import DeepAnalysisProvider, EvidenceProvider, MarketDataProvider
 from .scoring import score_metrics
 
 
@@ -21,19 +21,21 @@ def missing_fields(metrics: MetricSnapshot) -> list[str]:
 class Warren:
     """Reusable stock-intelligence engine.
 
-    Screen mode is deterministic and LLM-free. Deep mode runs independent
-    bull, bear and risk analysis before final synthesis through the configured
-    DeepAnalysisProvider.
+    Screen mode is deterministic and LLM-free. Deep mode gathers explicit,
+    source-attributed evidence and then runs independent bull, bear and risk
+    analysis before final synthesis through the configured DeepAnalysisProvider.
     """
 
     def __init__(
         self,
         market_data: MarketDataProvider,
         deep_analysis: DeepAnalysisProvider | None = None,
+        evidence: EvidenceProvider | None = None,
         screen_concurrency: int = 8,
     ):
         self.market_data = market_data
         self.deep_analysis = deep_analysis
+        self.evidence = evidence
         self.screen_concurrency = max(1, screen_concurrency)
 
     async def screen(
@@ -77,13 +79,30 @@ class Warren:
     async def deep(self, ticker: str) -> DeepResponse:
         if self.deep_analysis is None:
             raise RuntimeError("A DeepAnalysisProvider must be configured for deep mode")
-        metrics = await asyncio.to_thread(self.market_data.fetch_metrics, ticker.strip().upper())
+
+        symbol = ticker.strip().upper()
+        metrics = await asyncio.to_thread(self.market_data.fetch_metrics, symbol)
         scores = score_metrics(metrics)
-        analysis, model = await self.deep_analysis.analyze(metrics, scores)
+        evidence = EvidenceBundle()
+
+        if self.evidence is not None:
+            try:
+                evidence = await asyncio.to_thread(self.evidence.fetch_evidence, symbol, metrics)
+            except Exception as exc:
+                evidence.source_status.append(
+                    SourceStatus(
+                        source=self.evidence.__class__.__name__,
+                        status="error",
+                        detail=f"{type(exc).__name__}: {exc}",
+                    )
+                )
+
+        analysis, model = await self.deep_analysis.analyze(metrics, scores, evidence)
         return DeepResponse(
             ticker=metrics.ticker,
             metrics=metrics,
             scores=scores,
+            evidence=evidence,
             missing_data=missing_fields(metrics),
             analysis=analysis,
             model=model,
