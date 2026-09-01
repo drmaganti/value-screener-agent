@@ -10,8 +10,8 @@ It is intentionally **not tied to Parse, Value Screener, a specific UI, a specif
 
 Most stock tools either rank companies with opaque scores or ask one LLM to produce an unchallenged narrative. Warren separates these jobs:
 
-- **Screen mode** cheaply ranks a universe using verified structured data and deterministic scoring.
-- **Deep mode** investigates one company using independent bull, bear and risk perspectives followed by a final synthesis.
+- **Screen mode** cheaply ranks a universe using structured data and deterministic scoring.
+- **Deep mode** investigates one company using source-attributed evidence, independent bull/bear/risk perspectives, and final synthesis.
 
 This preserves the strongest design idea from TradingAgents while avoiding multi-agent cost across an entire index.
 
@@ -33,6 +33,7 @@ Use when the question is: **Which stocks deserve further research?**
 Screen mode:
 
 - makes no LLM calls;
+- does not collect news, filings or macro evidence;
 - scores fundamentals, valuation, business quality, growth, risk resilience and market context;
 - ranks a caller-supplied universe;
 - can be used inside a weekly strategy funnel, Parse, Value Screener or another future product.
@@ -51,39 +52,66 @@ Use when the question is: **I am interested in this company. What is the investm
 Deep mode currently runs:
 
 ```text
-Verified structured evidence
-        |
+Structured company metrics
+          +
+Source-attributed evidence
+  |-- SEC recent filing metadata
+  |-- Yahoo recent news headlines
+  |-- Yahoo EPS/revenue estimates + revisions
+  |-- Yahoo earnings surprise history
+  `-- FRED macro observations (optional)
+          |
 Deterministic scoring
-        |
-  +-----+------+-------+
-  |            |       |
-Bull analyst  Bear    Risk reviewer
-  |            |       |
-  +------------+-------+
-               |
-        Final evaluator
-               |
+          |
+   +------+------+------+
+   |             |      |
+ Bull analyst   Bear   Risk reviewer
+   |             |      |
+   +-------------+------+
+                 |
+          Final evaluator
+                 |
 Thesis / positives / concerns / risks /
 what changes the view / verdict / confidence
 ```
+
+### Evidence discipline
+
+Warren treats source material according to what was actually retrieved:
+
+- SEC entries are **filing metadata**, not filing-content summaries. Deep must not claim what a filing says unless filing text is added as a future evidence source.
+- Yahoo news entries are **headlines**, not full-article content. Deep must not infer facts beyond the headline.
+- Estimate revisions, earnings history and FRED observations are structured values and can be compared directly.
+- Every evidence source reports `ok`, `partial`, `unavailable` or `error`; missing sources reduce confidence rather than silently disappearing.
 
 ## Reusable Python API
 
 ```python
 from warren import Warren
-from warren.providers import YFinanceMarketDataProvider
 from warren.deep import GeminiDeepAnalysisProvider
+from warren.evidence import (
+    CompositeEvidenceProvider,
+    FredMacroEvidenceProvider,
+    SecFilingEvidenceProvider,
+    YahooEvidenceProvider,
+)
+from warren.providers import YFinanceMarketDataProvider
 
 warren = Warren(
     market_data=YFinanceMarketDataProvider(),
     deep_analysis=GeminiDeepAnalysisProvider(),
+    evidence=CompositeEvidenceProvider([
+        SecFilingEvidenceProvider(),
+        YahooEvidenceProvider(),
+        FredMacroEvidenceProvider(),
+    ]),
 )
 
 screen = await warren.screen(["AAPL", "MSFT", "NVDA"])
 deep = await warren.deep("NVDA")
 ```
 
-The provider interfaces are deliberately replaceable. A future application can use Polygon, FMP, Alpha Vantage, licensed fundamentals, another LLM, or a non-LLM deep-analysis implementation without changing Warren's caller contract.
+The provider interfaces are deliberately replaceable. A future application can use Polygon, FMP, licensed fundamentals, a paid news feed, another macro provider, another LLM, or a non-LLM deep-analysis implementation without changing Warren's caller contract.
 
 ## HTTP API
 
@@ -91,6 +119,8 @@ The FastAPI adapter exposes:
 
 - `GET /health`
 - `POST /v1/analyze`
+
+Deep responses include the exact `evidence` packet used for analysis so clients can display provenance and evidence availability.
 
 See [docs/API.md](docs/API.md).
 
@@ -109,25 +139,42 @@ See [docs/API.md](docs/API.md).
 
 ## Current status
 
-Warren is an early product module. The current implementation establishes the reusable boundaries and the two-mode contract. Before relying on scores for production investment research, the methodology needs calibration/backtesting and Deep mode needs additional verified evidence sources such as filings, news/macro and estimate revisions.
+**v0.3** establishes the reusable evidence layer and grounds Deep mode in filings metadata, news headlines, analyst estimate revisions, recent earnings history and optional macro data.
+
+Still required before production investment-research reliance:
+
+- score calibration/backtesting;
+- primary-source filing text/XBRL extraction rather than metadata alone;
+- production/SLA-backed market and news providers;
+- evidence freshness/caching policy;
+- methodology/model versioning;
+- deeper evaluation of factuality and investment usefulness.
 
 ## Configuration
 
-Deep mode currently expects:
-
 ```bash
+# Required for Deep synthesis
 export GEMINI_API_KEY="..."
-export GEMINI_MODEL="gemini-2.5-flash"   # optional
+
+# Optional model override
+export GEMINI_MODEL="gemini-2.5-flash"
+
+# Optional macro evidence. Deep continues without it when absent.
+export FRED_API_KEY="..."
+
+# Recommended for production automated SEC access.
+export SEC_USER_AGENT="WarrenStockIntelligence/0.3 contact@example.com"
 ```
 
-Screen mode does not require an LLM key.
+Screen mode does not require an LLM key or evidence-provider keys.
 
 ## Development
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+python -m pytest -q
 uvicorn app.main:app --reload
 ```
 
