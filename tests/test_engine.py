@@ -3,7 +3,14 @@ from __future__ import annotations
 import pytest
 
 from warren.engine import Warren
-from warren.models import CategoryScores, DeepAnalysis, MetricSnapshot
+from warren.models import (
+    CategoryScores,
+    DeepAnalysis,
+    EvidenceBundle,
+    MetricSnapshot,
+    NewsEvidence,
+    SourceStatus,
+)
 
 
 class FakeMarketData:
@@ -43,12 +50,34 @@ class FakeMarketData:
         )
 
 
+class FakeEvidence:
+    def __init__(self, fail: bool = False):
+        self.calls = 0
+        self.fail = fail
+
+    def fetch_evidence(self, ticker: str, metrics: MetricSnapshot) -> EvidenceBundle:
+        self.calls += 1
+        if self.fail:
+            raise RuntimeError("evidence unavailable")
+        return EvidenceBundle(
+            news=[NewsEvidence(title="Test headline", publisher="Test Publisher")],
+            source_status=[SourceStatus(source="fake", status="ok")],
+        )
+
+
 class FakeDeepAnalysis:
     def __init__(self):
         self.calls = 0
+        self.last_evidence: EvidenceBundle | None = None
 
-    async def analyze(self, metrics: MetricSnapshot, scores: CategoryScores):
+    async def analyze(
+        self,
+        metrics: MetricSnapshot,
+        scores: CategoryScores,
+        evidence: EvidenceBundle,
+    ):
         self.calls += 1
+        self.last_evidence = evidence
         return (
             DeepAnalysis(
                 thesis="Test thesis",
@@ -66,16 +95,18 @@ class FakeDeepAnalysis:
 
 
 @pytest.mark.asyncio
-async def test_screen_ranks_without_calling_deep_provider():
+async def test_screen_ranks_without_calling_deep_or_evidence_provider():
     market = FakeMarketData()
     deep = FakeDeepAnalysis()
-    warren = Warren(market_data=market, deep_analysis=deep)
+    evidence = FakeEvidence()
+    warren = Warren(market_data=market, deep_analysis=deep, evidence=evidence)
 
     response = await warren.screen(["WEAK", "GOOD"])
 
     assert response.screened_count == 2
     assert [item.ticker for item in response.results] == ["GOOD", "WEAK"]
     assert deep.calls == 0
+    assert evidence.calls == 0
 
 
 @pytest.mark.asyncio
@@ -90,16 +121,33 @@ async def test_screen_deduplicates_and_isolates_failures():
 
 
 @pytest.mark.asyncio
-async def test_deep_calls_deep_provider_once():
+async def test_deep_collects_and_passes_evidence_once():
     market = FakeMarketData()
+    evidence = FakeEvidence()
     deep = FakeDeepAnalysis()
-    warren = Warren(market_data=market, deep_analysis=deep)
+    warren = Warren(market_data=market, deep_analysis=deep, evidence=evidence)
 
     response = await warren.deep("GOOD")
 
     assert response.ticker == "GOOD"
     assert response.analysis.verdict == "Test verdict"
     assert response.model == "fake-model"
+    assert evidence.calls == 1
+    assert deep.calls == 1
+    assert response.evidence.news[0].title == "Test headline"
+    assert deep.last_evidence is not None
+    assert deep.last_evidence.news[0].title == "Test headline"
+
+
+@pytest.mark.asyncio
+async def test_deep_degrades_when_evidence_provider_fails():
+    deep = FakeDeepAnalysis()
+    warren = Warren(market_data=FakeMarketData(), deep_analysis=deep, evidence=FakeEvidence(fail=True))
+
+    response = await warren.deep("GOOD")
+
+    assert response.analysis.verdict == "Test verdict"
+    assert response.evidence.source_status[0].status == "error"
     assert deep.calls == 1
 
 
