@@ -36,6 +36,18 @@ def test_valid_mode_shapes():
     assert deep.mode == "deep"
 
 
+def test_analyze_page_is_served():
+    client = TestClient(app)
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Ask Warren about any stock." in response.text
+    assert "Run Analysis" in response.text
+    assert "Attractive" in response.text
+    assert "Methodology" in response.text
+    assert "Roadmap" in response.text
+
+
 def test_methodology_page_is_served():
     client = TestClient(app)
     response = client.get("/methodology")
