@@ -2,7 +2,22 @@
 
 All notable product/module changes should be recorded here.
 
-## Unreleased / v0.3.0
+## Unreleased
+
+### Added
+
+- Public Ask Warren methodology page served at `GET /methodology` in the approved dark visual direction.
+- User-facing explanation of deterministic scoring, evidence discipline, Bull/Bear/Risk synthesis, verdict confidence and methodology versioning.
+- Three-state Ask Warren verdict language: `Attractive`, `Watch`, `Avoid`.
+- Transparent deterministic DCF specification with Bear/Base/Bull scenarios, required assumptions and sensitivity guardrails.
+- API contract test confirming the methodology page is served and contains the core verdict/DCF concepts.
+
+### Changed
+
+- Expanded `docs/METHODOLOGY.md` from the initial score description into the full research-methodology contract for Warren and Ask Warren.
+- README now distinguishes the reusable Warren engine from the user-facing Ask Warren product and documents the public methodology route.
+
+## v0.3.0
 
 ### Added
 
