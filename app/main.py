@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 
 from warren.deep import GeminiDeepAnalysisProvider
 from warren.engine import Warren
+from warren.evidence import CompositeEvidenceProvider, FredMacroEvidenceProvider, SecFilingEvidenceProvider, YahooEvidenceProvider
 from warren.providers import YFinanceMarketDataProvider
 
 from .models import AnalyzeRequest, AnalyzeResponse
@@ -11,12 +12,19 @@ from .models import AnalyzeRequest, AnalyzeResponse
 engine = Warren(
     market_data=YFinanceMarketDataProvider(),
     deep_analysis=GeminiDeepAnalysisProvider(),
+    evidence=CompositeEvidenceProvider(
+        [
+            SecFilingEvidenceProvider(),
+            YahooEvidenceProvider(),
+            FredMacroEvidenceProvider(),
+        ]
+    ),
 )
 
 app = FastAPI(
     title="Warren Stock Intelligence API",
-    version="0.2.0",
-    description="Reusable stock screening and TradingAgents-inspired deep analysis for any client application.",
+    version="0.3.0",
+    description="Reusable stock screening and source-grounded TradingAgents-inspired deep analysis for any client application.",
 )
 
 
