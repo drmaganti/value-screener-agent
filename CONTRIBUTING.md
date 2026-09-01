@@ -14,7 +14,7 @@ Changes to Warren should preserve three boundaries:
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
-pytest -q
+python -m pytest -q
 ```
 
 ## Pull requests
