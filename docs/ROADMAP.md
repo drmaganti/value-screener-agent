@@ -1,6 +1,6 @@
 # Roadmap
 
-## v0.2 — Reusable core (current)
+## v0.2 — Reusable core (complete)
 
 - [x] Warren package boundary independent of client applications.
 - [x] Screen and Deep modes.
@@ -11,30 +11,48 @@
 - [x] Gemini deep-analysis provider.
 - [x] FastAPI adapter.
 - [x] Product, architecture, API and methodology documentation.
-- [ ] Unit/contract test baseline.
-- [ ] CI workflow.
+- [x] Unit/contract test baseline.
+- [x] CI workflow.
 
-## v0.3 — Evidence quality
+## v0.3 — Evidence quality (current)
 
 Goal: make Deep mode materially more complete without letting LLMs invent context.
 
-- filings/earnings evidence provider;
-- current news provider;
-- macro/industry context provider;
-- evidence IDs/citations passed through Deep output;
-- data freshness metadata;
-- claim-level evidence checks;
-- structured company/filing evidence bundle.
+Completed in current v0.3 slice:
 
-Target Deep architecture:
+- [x] reusable `EvidenceProvider` protocol and typed `EvidenceBundle`;
+- [x] composite evidence collector with per-source failure isolation;
+- [x] official SEC EDGAR recent filing **metadata** provider for exact US ticker mappings;
+- [x] Yahoo recent headline evidence;
+- [x] Yahoo EPS/revenue estimate trends and revision counts;
+- [x] Yahoo recent earnings surprise/history evidence;
+- [x] optional FRED macro provider;
+- [x] source status (`ok` / `partial` / `unavailable` / `error`);
+- [x] evidence packet passed through Deep API response;
+- [x] Deep prompts explicitly prevent filing-content and headline-content overreach;
+- [x] provider resilience tests.
+
+Remaining v0.3 quality work:
+
+- [ ] actual SEC filing text/XBRL facts rather than filing metadata only;
+- [ ] SEDAR+ / Canadian issuer evidence strategy;
+- [ ] earnings release and guidance text;
+- [ ] full/ licensed news content where terms permit;
+- [ ] industry context provider;
+- [ ] stable evidence IDs and claim-level citations in generated output;
+- [ ] explicit evidence freshness/version metadata;
+- [ ] claim-level evidence checker;
+- [ ] frozen factuality/evidence-overreach eval fixtures.
+
+Current Deep architecture:
 
 ```text
-Fundamentals / filings
-Valuation
-Business quality / growth
-News / macro
+Fundamentals / structured metrics
+SEC filing metadata
+Yahoo news headlines
+Yahoo estimate revisions + earnings history
+FRED macro (optional)
 Market context
-Estimate revisions
         |
 Bull + Bear + Risk
         |
@@ -54,6 +72,8 @@ Final evaluator
 - earnings surprise/revision signals;
 - methodology version in every output.
 
+Estimate revisions are intentionally not added to Screen until point-in-time/calibration work supports the weighting.
+
 ## v0.5 — Evaluation and calibration
 
 - frozen point-in-time datasets;
@@ -62,13 +82,16 @@ Final evaluator
 - factor ablations;
 - sector/regime analysis;
 - Deep factuality eval suite;
+- filing/headline evidence-overreach evals;
 - Bull/Bear/Risk ablation versus single-agent baseline;
+- evidence-category ablations;
 - confidence calibration.
 
 ## v0.6 — Cost, caching and reliability
 
 - cached market snapshots;
 - cached fundamentals until material update;
+- per-source evidence caches with separate TTLs;
 - Deep cache keyed to evidence version;
 - event-driven invalidation after earnings/filings/material news;
 - retries/circuit breakers;
@@ -77,7 +100,7 @@ Final evaluator
 
 ## v0.7 — Production data adapters
 
-Evaluate paid/licensed providers based on coverage, point-in-time history, terms and cost. Candidates may include providers such as FMP, Polygon or other licensed fundamentals/estimate feeds. The provider interface should prevent client changes.
+Evaluate paid/licensed providers based on coverage, point-in-time history, terms and cost. Candidates may include providers such as FMP, Polygon or other licensed fundamentals/estimate/news feeds. The provider interface should prevent client changes.
 
 ## Integration milestones
 
@@ -95,7 +118,8 @@ Evaluate paid/licensed providers based on coverage, point-in-time history, terms
 - define stock detail UX;
 - call Deep on explicit user action or selected candidate;
 - render company quality separately from valuation;
-- show supporting evidence and missing-data confidence.
+- show supporting evidence and missing-data confidence;
+- make source-status/evidence provenance visible.
 
 ### Value Screener
 
