@@ -2,7 +2,7 @@
 
 ## System boundary
 
-Warren is a domain module with optional delivery adapters. Client products should depend on Warren's public methods or HTTP contract, not on Yahoo Finance or Gemini directly.
+Warren is a domain module with optional delivery adapters. Client products should depend on Warren's public methods or HTTP contract, not on Yahoo Finance, SEC, FRED or Gemini directly.
 
 ```text
 Client products
@@ -16,12 +16,14 @@ Client products
                          |
                     Warren engine
                          |
-           +-------------+-------------+
-           |                           |
-   MarketDataProvider          DeepAnalysisProvider
-           |                           |
-     Yahoo today                 Gemini today
-     paid feed later             other model later
+       +-----------------+------------------+
+       |                 |                  |
+MarketDataProvider  EvidenceProvider  DeepAnalysisProvider
+       |                 |                  |
+ Yahoo today       Composite today      Gemini today
+ paid later        |-- SEC filings      other model later
+                   |-- Yahoo evidence
+                   `-- FRED macro
 ```
 
 ## Core components
@@ -37,7 +39,7 @@ The engine does not know which application called it.
 
 ### `MarketDataProvider`
 
-A protocol for obtaining a verified `MetricSnapshot`. The initial adapter is `YFinanceMarketDataProvider`.
+A protocol for obtaining a structured `MetricSnapshot`. The initial adapter is `YFinanceMarketDataProvider`.
 
 A production provider can later use licensed data without changing callers.
 
@@ -45,23 +47,48 @@ A production provider can later use licensed data without changing callers.
 
 `warren.scoring.score_metrics` transforms structured metrics into category scores. This stage is LLM-free and is shared by both modes.
 
+### `EvidenceProvider`
+
+A protocol for collecting source-attributed context used only by Deep.
+
+The initial `CompositeEvidenceProvider` merges independent providers and isolates failures. One unavailable source does not erase evidence from the others.
+
+Current providers:
+
+- `SecFilingEvidenceProvider` — recent SEC filing metadata from official SEC endpoints;
+- `YahooEvidenceProvider` — recent headlines, EPS/revenue estimates and revisions, and recent earnings surprise history;
+- `FredMacroEvidenceProvider` — optional macro observations when `FRED_API_KEY` is configured.
+
+The evidence packet also carries `source_status` entries (`ok`, `partial`, `unavailable`, `error`) so the model and client can reason about evidence quality explicitly.
+
 ### `DeepAnalysisProvider`
 
 A protocol for the expensive interpretation stage. The initial Gemini implementation uses the TradingAgents pattern we deliberately chose:
 
 ```text
-Structured evidence + deterministic scores
-                 |
-      +----------+----------+
-      |          |          |
-     Bull       Bear       Risk
-      |          |          |
-      +----------+----------+
-                 |
-          Final synthesis
+Metrics + scores + source-attributed evidence
+                    |
+          +---------+---------+
+          |         |         |
+         Bull      Bear      Risk
+          |         |         |
+          +---------+---------+
+                    |
+             Final synthesis
 ```
 
-Bull, Bear and Risk run independently and concurrently. The final evaluator receives all three outputs plus the original structured evidence.
+Bull, Bear and Risk run independently and concurrently. The final evaluator receives all three outputs plus the original source packet and is instructed to weight source facts above agent rhetoric.
+
+## Evidence semantics
+
+The architecture distinguishes **retrieval depth** from **source authority**.
+
+- SEC is authoritative, but v0.3 retrieves filing metadata rather than the filing body. Therefore the model may say a filing exists, but not what the filing says.
+- Yahoo news provides current headline-level context. A headline is evidence of a reported claim/topic, not proof of all underlying facts.
+- Yahoo estimate/revision tables and earnings history are structured data and can be compared directly.
+- FRED observations are structured macro values from a public economic-data source.
+
+This distinction is enforced in Deep prompts and should eventually be tested with claim-level factuality evals.
 
 ## Why this differs from TradingAgents
 
@@ -73,7 +100,7 @@ Preserved:
 - bull vs. bear challenge;
 - independent risk review;
 - final synthesis;
-- data as source of truth rather than LLM-generated numbers.
+- data/evidence as source of truth rather than LLM-generated numbers.
 
 Simplified/removed for now:
 
@@ -82,7 +109,7 @@ Simplified/removed for now:
 - multi-agent execution for every screened stock;
 - checkpointing/trading state.
 
-Planned evidence agents include filings/fundamentals, verified news/macro, market context and estimate revisions. See `ROADMAP.md`.
+Instead of adding an LLM agent for every evidence category, v0.3 first makes the evidence packet explicit and source-attributed. Dedicated evidence-analysis agents can be added later only if evals show they improve quality enough to justify extra latency/cost.
 
 ## Mode boundaries
 
@@ -98,14 +125,14 @@ deterministic scoring
 filter + rank
 ```
 
-No DeepAnalysisProvider is invoked.
+No EvidenceProvider or DeepAnalysisProvider is invoked.
 
 ### Deep
 
 ```text
 single ticker
       |
-market data
+market data + evidence collection
       |
 deterministic scoring
       |
@@ -153,24 +180,30 @@ Warren -> a specific UI
 
 ## Cost architecture
 
-- Screen: structured data calls + local calculations.
-- Deep: structured data calls + 4 LLM requests today (Bull, Bear, Risk concurrently; Final afterward).
-- Future caching should separately cache data snapshots, evidence summaries and final analyses because they have different freshness requirements.
+- Screen: structured market-data calls + local calculations.
+- Deep: market-data call + evidence-source network calls + 4 LLM requests today (Bull, Bear, Risk concurrently; Final afterward).
+- FRED is optional and adds no LLM call.
+- Future caching should separately cache market snapshots, filings/news/estimate evidence, macro evidence and final analyses because they have different freshness requirements.
 
 ## Freshness model (target)
 
 Different evidence should have different TTL/event refresh policies:
 
 - price/market context: short TTL;
-- fundamentals: refresh on filings/earnings or daily provider update;
+- fundamentals: refresh on filings/earnings or provider update;
+- filing metadata: event-driven / daily check;
 - news: short TTL/event-driven;
-- business description: long TTL;
+- estimate revisions: daily or after provider update;
+- macro: based on series release frequency;
 - Deep synthesis: invalidated by material evidence changes.
+
+v0.3 does not yet implement persistent caching/freshness metadata beyond source dates supplied by individual evidence items.
 
 ## Failure behavior
 
-- A failed ticker in Screen should not fail the entire batch.
-- Deep should fail visibly if verified evidence cannot be fetched.
+- A failed ticker in Screen does not fail the entire batch.
+- Evidence-provider failures in Deep are recorded in `source_status` and the remaining evidence continues.
+- Deep synthesis fails visibly if the DeepAnalysisProvider itself cannot run.
 - Missing metrics are returned explicitly.
 - Deep mode requires a configured deep-analysis provider.
 - LLM output must be validated against structured schemas before returning to clients.
