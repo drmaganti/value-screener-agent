@@ -1,20 +1,28 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from warren.deep import GeminiDeepAnalysisProvider
+from warren.deep import DeterministicDeepAnalysisProvider, GeminiDeepAnalysisProvider
 from warren.engine import Warren
 from warren.evidence import CompositeEvidenceProvider, FredMacroEvidenceProvider, SecFilingEvidenceProvider, YahooEvidenceProvider
 from warren.providers import YFinanceMarketDataProvider
 
 from .models import AnalyzeRequest, AnalyzeResponse
 
+
+def _deep_provider():
+    if os.getenv("GEMINI_API_KEY"):
+        return GeminiDeepAnalysisProvider()
+    return DeterministicDeepAnalysisProvider()
+
+
 engine = Warren(
     market_data=YFinanceMarketDataProvider(),
-    deep_analysis=GeminiDeepAnalysisProvider(),
+    deep_analysis=_deep_provider(),
     evidence=CompositeEvidenceProvider(
         [
             SecFilingEvidenceProvider(),
@@ -25,17 +33,26 @@ engine = Warren(
 )
 
 app = FastAPI(
-    title="Warren Stock Intelligence API",
-    version="0.3.0",
-    description="Reusable stock screening and source-grounded TradingAgents-inspired deep analysis for any client application.",
+    title="Ask Warren Stock Intelligence",
+    version="0.3.1",
+    description="Standalone stock research experience powered by the reusable Warren engine.",
 )
 
 WEB_DIR = Path(__file__).resolve().parents[1] / "web"
 
 
+@app.get("/", include_in_schema=False)
+def analyze_page() -> FileResponse:
+    return FileResponse(WEB_DIR / "index.html", media_type="text/html")
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "warren"}
+    return {
+        "status": "ok",
+        "service": "warren",
+        "deep_provider": "gemini" if os.getenv("GEMINI_API_KEY") else "deterministic-v1",
+    }
 
 
 @app.get("/methodology", include_in_schema=False)
