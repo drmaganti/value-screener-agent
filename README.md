@@ -15,6 +15,24 @@ Most stock tools either rank companies with opaque scores or ask one LLM to prod
 
 This preserves the strongest design idea from TradingAgents while avoiding multi-agent cost across an entire index.
 
+## Ask Warren
+
+**Ask Warren** is the standalone user-facing product built on top of the Warren engine. Its primary experience is a single-stock Deep analysis: enter a ticker, review the investment thesis, Bull and Bear cases, risks, quality/valuation evidence, and a three-state research verdict:
+
+- **Attractive** — closest analogue to Buy;
+- **Watch** — closest analogue to Hold / Wait;
+- **Avoid** — closest analogue to Sell / Do not initiate.
+
+Every verdict should also state its confidence and **what would change Warren's view**.
+
+The public methodology page is served at:
+
+```text
+GET /methodology
+```
+
+It explains the scoring model, evidence discipline, Deep workflow, three verdicts, DCF framework, limitations and methodology versioning in user-facing language. The detailed technical specification remains in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
+
 ## Modes
 
 ### Screen
@@ -84,6 +102,20 @@ Warren treats source material according to what was actually retrieved:
 - Estimate revisions, earnings history and FRED observations are structured values and can be compared directly.
 - Every evidence source reports `ok`, `partial`, `unavailable` or `error`; missing sources reduce confidence rather than silently disappearing.
 
+## DCF direction
+
+Ask Warren's valuation experience is designed to include a transparent deterministic DCF rather than an unexplained model-generated fair value. The DCF specification requires:
+
+- normalized base free cash flow;
+- explicit forecast assumptions;
+- WACC / discount rate;
+- terminal-value assumptions;
+- net cash/debt and diluted shares;
+- Bear / Base / Bull scenarios;
+- visible sensitivity and data freshness.
+
+The LLM may explain or challenge assumptions, but it should not perform hidden free-form valuation arithmetic. See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
+
 ## Reusable Python API
 
 ```python
@@ -118,6 +150,7 @@ The provider interfaces are deliberately replaceable. A future application can u
 The FastAPI adapter exposes:
 
 - `GET /health`
+- `GET /methodology` — public Ask Warren methodology page
 - `POST /v1/analyze`
 
 Deep responses include the exact `evidence` packet used for analysis so clients can display provenance and evidence availability.
@@ -141,13 +174,16 @@ See [docs/API.md](docs/API.md).
 
 **v0.3** establishes the reusable evidence layer and grounds Deep mode in filings metadata, news headlines, analyst estimate revisions, recent earnings history and optional macro data.
 
+The Ask Warren UX and the deterministic DCF implementation are the next product layer over this engine. The public methodology route now documents the intended user-facing research contract before those capabilities are presented as complete.
+
 Still required before production investment-research reliance:
 
 - score calibration/backtesting;
 - primary-source filing text/XBRL extraction rather than metadata alone;
 - production/SLA-backed market and news providers;
 - evidence freshness/caching policy;
-- methodology/model versioning;
+- methodology/model versioning in stored outputs;
+- deterministic DCF implementation and validation;
 - deeper evaluation of factuality and investment usefulness.
 
 ## Configuration
@@ -178,4 +214,4 @@ python -m pytest -q
 uvicorn app.main:app --reload
 ```
 
-OpenAPI documentation is available from FastAPI at `/docs` when running locally.
+OpenAPI documentation is available from FastAPI at `/docs` when running locally. The public methodology page is available at `/methodology`.
