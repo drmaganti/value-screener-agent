@@ -43,6 +43,11 @@ def methodology_page() -> FileResponse:
     return FileResponse(WEB_DIR / "methodology.html", media_type="text/html")
 
 
+@app.get("/roadmap", include_in_schema=False)
+def roadmap_page() -> FileResponse:
+    return FileResponse(WEB_DIR / "roadmap.html", media_type="text/html")
+
+
 @app.post("/v1/analyze", response_model=AnalyzeResponse)
 async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     if request.mode == "screen":
