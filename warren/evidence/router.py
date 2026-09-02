@@ -12,9 +12,11 @@ from ..models import (
     EvidenceClaim,
     EvidenceReference,
     FilingEvidence,
+    InsiderTransactionEvidence,
     MacroEvidence,
     MetricSnapshot,
     NewsEvidence,
+    TechnicalEvidence,
 )
 from ..protocols import EvidenceProvider
 
@@ -27,7 +29,7 @@ class EvidenceRouter:
     Bull, Bear, Risk and Final analysis.
     """
 
-    VERSION = "1.0"
+    VERSION = "1.1"
 
     def __init__(self, upstream: EvidenceProvider):
         self.upstream = upstream
@@ -52,6 +54,8 @@ def _raw_item_count(bundle: EvidenceBundle) -> int:
         + len(bundle.news)
         + len(bundle.estimate_revisions)
         + len(bundle.earnings_history)
+        + len(bundle.technical)
+        + len(bundle.insider_transactions)
         + len(bundle.macro)
     )
 
@@ -99,7 +103,7 @@ def _confidence(authority_tier: int, retrieval_depth: str, independent_sources: 
         return "high"
     if independent_sources >= 2 and authority_tier <= 3:
         return "high"
-    if retrieval_depth == "headline":
+    if retrieval_depth in {"headline", "excerpt"}:
         return "low"
     if authority_tier <= 2:
         return "medium"
@@ -137,7 +141,6 @@ def _filing_claim(item: FilingEvidence) -> EvidenceClaim:
 def _news_claim(group: list[NewsEvidence]) -> EvidenceClaim:
     first = group[0]
     publishers = {item.publisher or item.source for item in group}
-    independent = len(publishers)
     references = [
         _reference(
             item.source,
@@ -155,13 +158,14 @@ def _news_claim(group: list[NewsEvidence]) -> EvidenceClaim:
         as_of=first.published_at,
         authority_tier=4,
         retrieval_depth="headline",
-        confidence=_confidence(4, "headline", independent),
+        confidence="low",
         references=references,
-        independent_source_count=independent,
+        independent_source_count=1,
         duplicate_count=max(0, len(group) - 1),
         metadata={
             "headline_only": True,
-            "publisher_count": independent,
+            "publisher_count": len(publishers),
+            "possible_syndication": len(group) > 1,
             "content_retrieved": False,
         },
     )
@@ -215,6 +219,67 @@ def _earnings_claim(item: EarningsHistoryEvidence) -> EvidenceClaim:
     )
 
 
+def _technical_claim(item: TechnicalEvidence) -> EvidenceClaim:
+    as_of = item.as_of.isoformat() if item.as_of else "the latest trading day"
+    parts = [f"Technical snapshot as of {as_of}."]
+    if item.close is not None:
+        parts.append(f"Close {item.close:.2f}.")
+    if item.sma_50 is not None:
+        parts.append(f"50-day SMA {item.sma_50:.2f}.")
+    if item.sma_200 is not None:
+        parts.append(f"200-day SMA {item.sma_200:.2f}.")
+    if item.rsi_14 is not None:
+        parts.append(f"14-day RSI {item.rsi_14:.1f}.")
+    if item.macd is not None and item.macd_signal is not None:
+        parts.append(f"MACD {item.macd:.3f} versus signal {item.macd_signal:.3f}.")
+    return EvidenceClaim(
+        id=_stable_id("technical", as_of),
+        category="technical",
+        claim=" ".join(parts),
+        as_of=item.as_of,
+        authority_tier=2,
+        retrieval_depth="structured",
+        confidence="high",
+        references=[
+            _reference(
+                item.source,
+                authority_tier=2,
+                retrieval_depth="structured",
+            )
+        ],
+        metadata=item.model_dump(exclude_none=True, mode="json"),
+    )
+
+
+def _insider_claim(item: InsiderTransactionEvidence, index: int) -> EvidenceClaim:
+    when = item.start_date.isoformat() if item.start_date else "unknown date"
+    actor = item.insider or "An insider"
+    action = item.transaction or "a reported transaction"
+    parts = [f"Yahoo Finance structured insider data reports {actor}: {action} on {when}."]
+    if item.shares is not None:
+        parts.append(f"Shares: {item.shares:.0f}.")
+    if item.value is not None:
+        parts.append(f"Reported value: {item.value:.2f}.")
+    key = f"{actor}:{action}:{when}:{item.shares}:{item.value}:{index}"
+    return EvidenceClaim(
+        id=_stable_id("insider", key),
+        category="insider",
+        claim=" ".join(parts),
+        as_of=item.start_date,
+        authority_tier=2,
+        retrieval_depth="structured",
+        confidence="medium",
+        references=[
+            _reference(
+                item.source,
+                authority_tier=2,
+                retrieval_depth="structured",
+            )
+        ],
+        metadata=item.model_dump(exclude_none=True, mode="json"),
+    )
+
+
 def _macro_claim(item: MacroEvidence) -> EvidenceClaim:
     units = f" {item.units}" if item.units else ""
     return EvidenceClaim(
@@ -242,6 +307,8 @@ def normalize_claims(bundle: EvidenceBundle) -> tuple[list[EvidenceClaim], int]:
     claims.extend(_filing_claim(item) for item in bundle.filings)
     claims.extend(_estimate_claim(item) for item in bundle.estimate_revisions)
     claims.extend(_earnings_claim(item) for item in bundle.earnings_history)
+    claims.extend(_technical_claim(item) for item in bundle.technical)
+    claims.extend(_insider_claim(item, idx) for idx, item in enumerate(bundle.insider_transactions))
     claims.extend(_macro_claim(item) for item in bundle.macro)
 
     grouped_news: dict[str, list[NewsEvidence]] = defaultdict(list)
