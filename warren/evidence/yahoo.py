@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 import yfinance as yf
@@ -10,9 +10,11 @@ from ..models import (
     EarningsHistoryEvidence,
     EstimateRevisionEvidence,
     EvidenceBundle,
+    InsiderTransactionEvidence,
     MetricSnapshot,
     NewsEvidence,
     SourceStatus,
+    TechnicalEvidence,
 )
 
 
@@ -29,6 +31,40 @@ def _number(value: Any) -> float | None:
 def _integer(value: Any) -> int | None:
     number = _number(value)
     return int(number) if number is not None else None
+
+
+def _text(value: Any) -> str | None:
+    if value is None:
+        return None
+    try:
+        if value != value:
+            return None
+    except Exception:
+        pass
+    result = str(value).strip()
+    return result if result and result.lower() not in {"nan", "nat", "none"} else None
+
+
+def _date_value(value: Any) -> date | datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        return value
+    if hasattr(value, "to_pydatetime"):
+        try:
+            converted = value.to_pydatetime()
+            if isinstance(converted, datetime):
+                return converted
+        except Exception:
+            pass
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    return None
 
 
 def _cell(frame, row: str, column: str):
@@ -69,17 +105,24 @@ def _news_url(item: dict) -> str | None:
 
 
 class YahooEvidenceProvider:
-    """Recent headlines plus analyst estimate/revision evidence from yfinance.
+    """Development evidence provider backed by yfinance/Yahoo Finance.
 
-    This provider deliberately returns source facts only. Warren's LLM layer may
-    interpret those facts but may not replace or fabricate them.
+    It supplies recent headlines, analyst estimates/revisions, earnings history,
+    deterministic technical indicators and recent insider transactions. These are
+    source facts; interpretation belongs to Warren's analysis layer.
     """
 
     HORIZONS = ("0q", "+1q", "0y", "+1y")
 
-    def __init__(self, news_count: int = 8, earnings_history_count: int = 4):
+    def __init__(
+        self,
+        news_count: int = 8,
+        earnings_history_count: int = 4,
+        insider_transaction_count: int = 8,
+    ):
         self.news_count = max(0, news_count)
         self.earnings_history_count = max(0, earnings_history_count)
+        self.insider_transaction_count = max(0, insider_transaction_count)
 
     def fetch_evidence(self, ticker: str, metrics: MetricSnapshot) -> EvidenceBundle:
         symbol = ticker.strip().upper()
@@ -189,6 +232,118 @@ class YahooEvidenceProvider:
             bundle.source_status.append(
                 SourceStatus(
                     source="Yahoo Finance earnings history",
+                    status="error",
+                    detail=f"{type(exc).__name__}: {exc}",
+                )
+            )
+
+        # Technical indicators are calculated deterministically from daily OHLCV.
+        try:
+            prices = stock.history(period="1y", interval="1d", auto_adjust=False)
+            if prices is not None and not prices.empty and "Close" in prices.columns:
+                close = prices["Close"].dropna()
+                if not close.empty:
+                    latest = _number(close.iloc[-1])
+                    sma_50 = _number(close.rolling(50, min_periods=50).mean().iloc[-1])
+                    sma_200 = _number(close.rolling(200, min_periods=200).mean().iloc[-1])
+
+                    delta = close.diff()
+                    gain = delta.clip(lower=0).rolling(14, min_periods=14).mean()
+                    loss = (-delta.clip(upper=0)).rolling(14, min_periods=14).mean()
+                    gain_last = _number(gain.iloc[-1])
+                    loss_last = _number(loss.iloc[-1])
+                    if gain_last is None or loss_last is None:
+                        rsi_14 = None
+                    elif loss_last == 0:
+                        rsi_14 = 100.0 if gain_last > 0 else 50.0
+                    else:
+                        rsi_14 = 100 - (100 / (1 + (gain_last / loss_last)))
+
+                    ema_12 = close.ewm(span=12, adjust=False).mean()
+                    ema_26 = close.ewm(span=26, adjust=False).mean()
+                    macd_series = ema_12 - ema_26
+                    signal_series = macd_series.ewm(span=9, adjust=False).mean()
+                    macd = _number(macd_series.iloc[-1])
+                    macd_signal = _number(signal_series.iloc[-1])
+
+                    middle_20 = close.rolling(20, min_periods=20).mean()
+                    std_20 = close.rolling(20, min_periods=20).std()
+                    middle_last = _number(middle_20.iloc[-1])
+                    std_last = _number(std_20.iloc[-1])
+                    upper = middle_last + 2 * std_last if middle_last is not None and std_last is not None else None
+                    lower = middle_last - 2 * std_last if middle_last is not None and std_last is not None else None
+
+                    latest_volume = None
+                    avg_volume_20 = None
+                    if "Volume" in prices.columns:
+                        volume = prices["Volume"].dropna()
+                        if not volume.empty:
+                            latest_volume = _number(volume.iloc[-1])
+                            avg_volume_20 = _number(volume.tail(20).mean())
+
+                    idx = close.index[-1]
+                    as_of = idx.date() if hasattr(idx, "date") else None
+                    bundle.technical.append(
+                        TechnicalEvidence(
+                            as_of=as_of,
+                            close=latest,
+                            sma_50=sma_50,
+                            sma_200=sma_200,
+                            rsi_14=_number(rsi_14),
+                            macd=macd,
+                            macd_signal=macd_signal,
+                            bollinger_upper_20=_number(upper),
+                            bollinger_lower_20=_number(lower),
+                            latest_volume=latest_volume,
+                            avg_volume_20=avg_volume_20,
+                        )
+                    )
+            bundle.source_status.append(
+                SourceStatus(
+                    source="Yahoo Finance technicals",
+                    status="ok" if bundle.technical else "partial",
+                    detail=f"{len(bundle.technical)} deterministic technical snapshot returned",
+                )
+            )
+        except Exception as exc:
+            bundle.source_status.append(
+                SourceStatus(
+                    source="Yahoo Finance technicals",
+                    status="error",
+                    detail=f"{type(exc).__name__}: {exc}",
+                )
+            )
+
+        # Recent insider transactions add management/ownership context.
+        try:
+            insider_frame = stock.get_insider_transactions()
+            if insider_frame is not None and not insider_frame.empty:
+                if "Start Date" in insider_frame.columns:
+                    insider_frame = insider_frame.sort_values("Start Date", ascending=False)
+                for _, row in insider_frame.head(self.insider_transaction_count).iterrows():
+                    evidence = InsiderTransactionEvidence(
+                        insider=_text(row.get("Insider")),
+                        position=_text(row.get("Position")),
+                        transaction=_text(row.get("Transaction") or row.get("Text")),
+                        start_date=_date_value(row.get("Start Date")),
+                        shares=_number(row.get("Shares")),
+                        value=_number(row.get("Value")),
+                        ownership=_text(row.get("Ownership")),
+                    )
+                    values = evidence.model_dump(exclude={"source"}, exclude_none=True)
+                    if values:
+                        bundle.insider_transactions.append(evidence)
+            bundle.source_status.append(
+                SourceStatus(
+                    source="Yahoo Finance insider transactions",
+                    status="ok" if bundle.insider_transactions else "partial",
+                    detail=f"{len(bundle.insider_transactions)} recent insider transactions returned",
+                )
+            )
+        except Exception as exc:
+            bundle.source_status.append(
+                SourceStatus(
+                    source="Yahoo Finance insider transactions",
                     status="error",
                     detail=f"{type(exc).__name__}: {exc}",
                 )
