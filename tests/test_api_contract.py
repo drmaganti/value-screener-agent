@@ -41,9 +41,14 @@ def test_analyze_page_is_served():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Ask Warren about any stock." in response.text
+    assert "Ask Warren about a stock." in response.text
+    assert "U.S. equities V1" in response.text
     assert "Run Analysis" in response.text
-    assert "Attractive" in response.text
+    assert "Evidence Coverage" in response.text
+    assert "Normalized Evidence Claims" in response.text
+    assert "Technical Snapshot" in response.text
+    assert "Insider Activity" in response.text
+    assert "Web Discovery" in response.text
     assert "Methodology" in response.text
     assert "Roadmap" in response.text
 
