@@ -128,12 +128,35 @@ class MacroEvidence(BaseModel):
     source: str = "FRED"
 
 
+class EvidenceReference(BaseModel):
+    source: str
+    publisher: str | None = None
+    url: str | None = None
+    authority_tier: Literal[1, 2, 3, 4, 5]
+    retrieval_depth: Literal["metadata", "headline", "structured", "full_text"]
+
+
+class EvidenceClaim(BaseModel):
+    id: str
+    category: Literal["filing", "news", "estimate_revision", "earnings", "macro"]
+    claim: str
+    as_of: date | datetime | None = None
+    authority_tier: Literal[1, 2, 3, 4, 5]
+    retrieval_depth: Literal["metadata", "headline", "structured", "full_text"]
+    confidence: Literal["low", "medium", "high"]
+    references: list[EvidenceReference] = Field(default_factory=list)
+    independent_source_count: int = 1
+    duplicate_count: int = 0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class EvidenceBundle(BaseModel):
     filings: list[FilingEvidence] = Field(default_factory=list)
     news: list[NewsEvidence] = Field(default_factory=list)
     estimate_revisions: list[EstimateRevisionEvidence] = Field(default_factory=list)
     earnings_history: list[EarningsHistoryEvidence] = Field(default_factory=list)
     macro: list[MacroEvidence] = Field(default_factory=list)
+    claims: list[EvidenceClaim] = Field(default_factory=list)
     source_status: list[SourceStatus] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -144,6 +167,7 @@ class EvidenceBundle(BaseModel):
             estimate_revisions=[*self.estimate_revisions, *other.estimate_revisions],
             earnings_history=[*self.earnings_history, *other.earnings_history],
             macro=[*self.macro, *other.macro],
+            claims=[*self.claims, *other.claims],
             source_status=[*self.source_status, *other.source_status],
             metadata={**self.metadata, **other.metadata},
         )
