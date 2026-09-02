@@ -9,6 +9,8 @@ class DeterministicDeepAnalysisProvider:
     The fallback deliberately does not invent facts. It converts Warren's
     deterministic category scores and retrieved evidence into a concise,
     explainable research summary so Deep mode remains usable without an API key.
+    Technical and insider observations can enrich the narrative but do not alter
+    the current uncalibrated verdict thresholds.
     """
 
     @staticmethod
@@ -16,12 +18,6 @@ class DeterministicDeepAnalysisProvider:
         if value is None:
             return None
         return f"{value * 100:.1f}%"
-
-    @staticmethod
-    def _number(value: float | None, suffix: str = "") -> str | None:
-        if value is None:
-            return None
-        return f"{value:.1f}{suffix}"
 
     @staticmethod
     def _category_label(score: float) -> str:
@@ -89,6 +85,66 @@ class DeterministicDeepAnalysisProvider:
         ]
         return sorted(values, key=lambda item: item[1], reverse=True)
 
+    @staticmethod
+    def _technical_context(evidence: EvidenceBundle) -> tuple[list[str], list[str]]:
+        if not evidence.technical:
+            return [], []
+        technical = evidence.technical[0]
+        supportive: list[str] = []
+        cautious: list[str] = []
+
+        if technical.close is not None and technical.sma_200 is not None:
+            if technical.close >= technical.sma_200:
+                supportive.append(
+                    f"Price is above the 200-day moving average ({technical.close:.2f} vs {technical.sma_200:.2f}), a supportive long-term trend observation."
+                )
+            else:
+                cautious.append(
+                    f"Price is below the 200-day moving average ({technical.close:.2f} vs {technical.sma_200:.2f}), a weak long-term trend observation."
+                )
+        if technical.close is not None and technical.sma_50 is not None:
+            if technical.close >= technical.sma_50:
+                supportive.append(
+                    f"Price is above the 50-day moving average ({technical.close:.2f} vs {technical.sma_50:.2f})."
+                )
+            else:
+                cautious.append(
+                    f"Price is below the 50-day moving average ({technical.close:.2f} vs {technical.sma_50:.2f})."
+                )
+        if technical.rsi_14 is not None:
+            if technical.rsi_14 >= 70:
+                cautious.append(f"14-day RSI is {technical.rsi_14:.1f}, an elevated short-term momentum reading.")
+            elif technical.rsi_14 <= 30:
+                cautious.append(f"14-day RSI is {technical.rsi_14:.1f}, reflecting weak/oversold short-term momentum.")
+        if technical.macd is not None and technical.macd_signal is not None:
+            if technical.macd >= technical.macd_signal:
+                supportive.append(
+                    f"MACD is above its signal line ({technical.macd:.3f} vs {technical.macd_signal:.3f})."
+                )
+            else:
+                cautious.append(
+                    f"MACD is below its signal line ({technical.macd:.3f} vs {technical.macd_signal:.3f})."
+                )
+        return supportive, cautious
+
+    @staticmethod
+    def _insider_context(evidence: EvidenceBundle) -> tuple[list[str], list[str]]:
+        supportive: list[str] = []
+        cautious: list[str] = []
+        for item in evidence.insider_transactions[:5]:
+            transaction = (item.transaction or "").lower()
+            actor = item.insider or "an insider"
+            date_text = item.start_date.isoformat() if item.start_date else "an unspecified date"
+            if "purchase" in transaction or "buy" in transaction:
+                supportive.append(
+                    f"Structured insider data reports a purchase by {actor} on {date_text}; insider activity is contextual evidence, not a standalone thesis."
+                )
+            elif "sale" in transaction or "sell" in transaction:
+                cautious.append(
+                    f"Structured insider data reports a sale by {actor} on {date_text}; insider sales may be scheduled or liquidity-driven and are not independently decisive."
+                )
+        return supportive, cautious
+
     async def analyze(
         self,
         metrics: MetricSnapshot,
@@ -133,20 +189,30 @@ class DeterministicDeepAnalysisProvider:
         positives = positives[:5] or ["No strong positive signal is available from the currently observed metrics."]
         concerns = concerns[:5] or ["No major quantitative weakness is dominant, but the evidence set remains incomplete and should be reviewed alongside primary sources."]
 
+        technical_support, technical_caution = self._technical_context(evidence)
+        insider_support, insider_caution = self._insider_context(evidence)
+
         bull_case = positives[:3]
-        if evidence.estimate_revisions:
-            bull_case.append("Analyst estimate/revision evidence is available for review in the evidence panel.")
+        bull_case.extend(technical_support[:1])
+        if len(bull_case) < 4:
+            bull_case.extend(insider_support[: 4 - len(bull_case)])
+        if len(bull_case) < 4 and evidence.estimate_revisions:
+            bull_case.append("Analyst estimate/revision evidence is available for review in the evidence packet.")
 
         bear_case = concerns[:3]
-        if evidence.source_status:
+        bear_case.extend(technical_caution[:1])
+        if len(bear_case) < 4:
+            bear_case.extend(insider_caution[: 4 - len(bear_case)])
+        if len(bear_case) < 4 and evidence.source_status:
             unavailable = [s.source for s in evidence.source_status if s.status in {"unavailable", "error"}]
             if unavailable:
                 bear_case.append(f"Some evidence sources are unavailable or errored: {', '.join(unavailable[:3])}.")
 
-        risks = concerns[:4]
+        risks = concerns[:3]
+        risks.extend(insider_caution[:1])
         if not evidence.filings:
             risks.append("No filing evidence is available in the current packet; primary-source review remains important.")
-        if not evidence.news:
+        if not evidence.news and len(risks) < 5:
             risks.append("No recent headline evidence is available in the current packet.")
         risks = risks[:5]
 
@@ -195,5 +261,5 @@ class DeterministicDeepAnalysisProvider:
                 verdict=verdict,
                 confidence=confidence,
             ),
-            "deterministic-v1",
+            "deterministic-v1.1",
         )
