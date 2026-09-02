@@ -11,6 +11,7 @@ from warren.engine import Warren
 from warren.evidence import (
     CompositeEvidenceProvider,
     EvidenceRouter,
+    ExaWebEvidenceProvider,
     FredMacroEvidenceProvider,
     SecFilingEvidenceProvider,
     YahooEvidenceProvider,
@@ -26,13 +27,18 @@ def _deep_provider():
     return DeterministicDeepAnalysisProvider()
 
 
-raw_evidence = CompositeEvidenceProvider(
-    [
+def _evidence_providers():
+    providers = [
         SecFilingEvidenceProvider(),
         YahooEvidenceProvider(),
         FredMacroEvidenceProvider(),
     ]
-)
+    if os.getenv("EXA_API_KEY"):
+        providers.append(ExaWebEvidenceProvider())
+    return providers
+
+
+raw_evidence = CompositeEvidenceProvider(_evidence_providers())
 
 engine = Warren(
     market_data=YFinanceMarketDataProvider(),
@@ -42,7 +48,7 @@ engine = Warren(
 
 app = FastAPI(
     title="Ask Warren Stock Intelligence",
-    version="0.3.2",
+    version="0.3.3",
     description="Standalone stock research experience powered by the reusable Warren engine.",
 )
 
@@ -59,8 +65,9 @@ def health() -> dict[str, str]:
     return {
         "status": "ok",
         "service": "warren",
-        "deep_provider": "gemini" if os.getenv("GEMINI_API_KEY") else "deterministic-v1",
+        "deep_provider": "gemini" if os.getenv("GEMINI_API_KEY") else "deterministic-v1.1",
         "evidence_router": EvidenceRouter.VERSION,
+        "web_discovery": "exa" if os.getenv("EXA_API_KEY") else "disabled",
     }
 
 
