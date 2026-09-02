@@ -51,12 +51,15 @@ class GeminiDeepAnalysisProvider:
         packet = self._evidence(metrics, scores, evidence)
         shared = (
             "Use ONLY the supplied packet. Do not invent news, filing contents, forecasts, competitors, "
-            "prices, ratios, catalysts, or facts. SEC entries are filing METADATA only: do not claim what a filing says. "
-            "Yahoo news entries are HEADLINES only: do not infer article contents beyond the title. "
-            "Analyst revisions and FRED observations are structured source facts and may be compared directly. "
+            "prices, ratios, catalysts, or facts. Prefer evidence.claims as the interpretation-ready evidence layer: "
+            "claims have already been normalized and exact duplicate headlines have been collapsed. Do not count raw evidence "
+            "and its corresponding normalized claim as separate corroboration. Respect each claim's authority_tier, retrieval_depth, "
+            "confidence, independent_source_count and duplicate_count. A duplicated or syndicated headline is not independent evidence. "
+            "SEC entries with retrieval_depth=metadata prove filing metadata only: do not claim what a filing says. "
+            "News entries with retrieval_depth=headline prove only that the headline was published: do not infer unseen article contents. "
+            "Structured analyst revisions, earnings observations and FRED observations may be compared directly. "
             "Explicitly identify missing or unavailable evidence. Distinguish business quality from stock attractiveness. "
-            "When practical, name the evidence source in the argument, e.g. SEC filing metadata, Yahoo estimate revisions, "
-            "Yahoo earnings history, or FRED series ID."
+            "When practical, identify the source or claim category supporting an argument."
         )
 
         bull_prompt = f"""You are Warren's independent BULL analyst. {shared}
@@ -86,7 +89,7 @@ Bull analyst: {json.dumps(bull)}
 Bear analyst: {json.dumps(bear)}
 Risk reviewer: {json.dumps(risk)}
 
-Synthesize rather than vote. Weight source facts above agent rhetoric. A strong company can still be an unattractive stock if valuation or expectations are unfavorable. If filings are only metadata or news is only headline-level, state the limitation rather than pretending the underlying documents were read. Reduce confidence when important source_status entries are unavailable/error or when key metrics are missing.
+Synthesize rather than vote. Weight source facts above agent rhetoric. A strong company can still be an unattractive stock if valuation or expectations are unfavorable. If filings are only metadata or news is only headline-level, state the limitation rather than pretending the underlying documents were read. Reduce confidence when important source_status entries are unavailable/error, high-authority evidence is missing, or key metrics are missing.
 
 The verdict MUST be exactly one of:
 - "attractive" — favorable quality + valuation + risk/reward at the current price;
