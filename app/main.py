@@ -8,7 +8,13 @@ from fastapi.responses import FileResponse
 
 from warren.deep import DeterministicDeepAnalysisProvider, GeminiDeepAnalysisProvider
 from warren.engine import Warren
-from warren.evidence import CompositeEvidenceProvider, FredMacroEvidenceProvider, SecFilingEvidenceProvider, YahooEvidenceProvider
+from warren.evidence import (
+    CompositeEvidenceProvider,
+    EvidenceRouter,
+    FredMacroEvidenceProvider,
+    SecFilingEvidenceProvider,
+    YahooEvidenceProvider,
+)
 from warren.providers import YFinanceMarketDataProvider
 
 from .models import AnalyzeRequest, AnalyzeResponse
@@ -20,21 +26,23 @@ def _deep_provider():
     return DeterministicDeepAnalysisProvider()
 
 
+raw_evidence = CompositeEvidenceProvider(
+    [
+        SecFilingEvidenceProvider(),
+        YahooEvidenceProvider(),
+        FredMacroEvidenceProvider(),
+    ]
+)
+
 engine = Warren(
     market_data=YFinanceMarketDataProvider(),
     deep_analysis=_deep_provider(),
-    evidence=CompositeEvidenceProvider(
-        [
-            SecFilingEvidenceProvider(),
-            YahooEvidenceProvider(),
-            FredMacroEvidenceProvider(),
-        ]
-    ),
+    evidence=EvidenceRouter(raw_evidence),
 )
 
 app = FastAPI(
     title="Ask Warren Stock Intelligence",
-    version="0.3.1",
+    version="0.3.2",
     description="Standalone stock research experience powered by the reusable Warren engine.",
 )
 
@@ -52,6 +60,7 @@ def health() -> dict[str, str]:
         "status": "ok",
         "service": "warren",
         "deep_provider": "gemini" if os.getenv("GEMINI_API_KEY") else "deterministic-v1",
+        "evidence_router": EvidenceRouter.VERSION,
     }
 
 
