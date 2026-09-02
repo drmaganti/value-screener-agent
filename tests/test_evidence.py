@@ -3,7 +3,15 @@ from __future__ import annotations
 from datetime import date
 
 from warren.evidence import CompositeEvidenceProvider, EvidenceRouter, FredMacroEvidenceProvider, SecFilingEvidenceProvider
-from warren.models import EvidenceBundle, FilingEvidence, MetricSnapshot, NewsEvidence, SourceStatus
+from warren.models import (
+    EvidenceBundle,
+    FilingEvidence,
+    InsiderTransactionEvidence,
+    MetricSnapshot,
+    NewsEvidence,
+    SourceStatus,
+    TechnicalEvidence,
+)
 
 
 class GoodProvider:
@@ -42,6 +50,26 @@ class DuplicateNewsProvider:
                     url="https://example.org/story?utm_source=b",
                 ),
             ],
+            technical=[
+                TechnicalEvidence(
+                    as_of=date(2026, 9, 1),
+                    close=100,
+                    sma_50=95,
+                    sma_200=90,
+                    rsi_14=62,
+                    macd=1.5,
+                    macd_signal=1.2,
+                )
+            ],
+            insider_transactions=[
+                InsiderTransactionEvidence(
+                    insider="Example Executive",
+                    transaction="Sale",
+                    start_date=date(2026, 8, 20),
+                    shares=1000,
+                    value=100000,
+                )
+            ],
             source_status=[SourceStatus(source="test", status="ok")],
         )
 
@@ -59,13 +87,15 @@ def test_evidence_router_normalizes_and_deduplicates_claims():
     bundle = provider.fetch_evidence("AAPL", MetricSnapshot(ticker="AAPL"))
 
     assert len(bundle.news) == 2
-    assert len(bundle.claims) == 2
+    assert len(bundle.claims) == 4
 
     news_claim = next(claim for claim in bundle.claims if claim.category == "news")
     assert news_claim.retrieval_depth == "headline"
     assert news_claim.authority_tier == 4
     assert news_claim.duplicate_count == 1
-    assert news_claim.independent_source_count == 2
+    assert news_claim.independent_source_count == 1
+    assert news_claim.metadata["publisher_count"] == 2
+    assert news_claim.metadata["possible_syndication"] is True
     assert news_claim.confidence == "low"
 
     filing_claim = next(claim for claim in bundle.claims if claim.category == "filing")
@@ -73,9 +103,17 @@ def test_evidence_router_normalizes_and_deduplicates_claims():
     assert filing_claim.retrieval_depth == "metadata"
     assert filing_claim.metadata["content_retrieved"] is False
 
+    technical_claim = next(claim for claim in bundle.claims if claim.category == "technical")
+    assert technical_claim.confidence == "high"
+    assert "14-day RSI 62.0" in technical_claim.claim
+
+    insider_claim = next(claim for claim in bundle.claims if claim.category == "insider")
+    assert insider_claim.confidence == "medium"
+    assert "Example Executive" in insider_claim.claim
+
     router_meta = bundle.metadata["evidence_router"]
-    assert router_meta["raw_items"] == 3
-    assert router_meta["normalized_claims"] == 2
+    assert router_meta["raw_items"] == 5
+    assert router_meta["normalized_claims"] == 4
     assert router_meta["deduplicated_items"] == 1
 
 
