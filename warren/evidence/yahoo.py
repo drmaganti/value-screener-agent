@@ -42,7 +42,7 @@ def _text(value: Any) -> str | None:
     except Exception:
         pass
     result = str(value).strip()
-    return result if result and result.lower() not in {"nan", "nat", "none"} else None
+    return result if result and result.lower() not in {"nan", "nat", "none", "<na>"} else None
 
 
 def _date_value(value: Any) -> date | datetime | None:
@@ -129,7 +129,6 @@ class YahooEvidenceProvider:
         stock = yf.Ticker(symbol)
         bundle = EvidenceBundle(metadata={"yahoo_symbol": symbol})
 
-        # Recent news / press coverage.
         try:
             raw_news = stock.get_news(count=self.news_count, tab="news") or []
             for item in raw_news[: self.news_count]:
@@ -159,7 +158,6 @@ class YahooEvidenceProvider:
                 SourceStatus(source="Yahoo Finance news", status="error", detail=f"{type(exc).__name__}: {exc}")
             )
 
-        # Estimate levels, trends and analyst revision counts.
         try:
             eps_trend = stock.get_eps_trend()
             eps_revisions = stock.get_eps_revisions()
@@ -202,7 +200,6 @@ class YahooEvidenceProvider:
                 )
             )
 
-        # Actual-versus-estimate history provides context on recent execution.
         try:
             history = stock.get_earnings_history()
             if history is not None and not history.empty:
@@ -237,7 +234,6 @@ class YahooEvidenceProvider:
                 )
             )
 
-        # Technical indicators are calculated deterministically from daily OHLCV.
         try:
             prices = stock.history(period="1y", interval="1d", auto_adjust=False)
             if prices is not None and not prices.empty and "Close" in prices.columns:
@@ -314,7 +310,6 @@ class YahooEvidenceProvider:
                 )
             )
 
-        # Recent insider transactions add management/ownership context.
         try:
             insider_frame = stock.get_insider_transactions()
             if insider_frame is not None and not insider_frame.empty:
@@ -324,7 +319,7 @@ class YahooEvidenceProvider:
                     evidence = InsiderTransactionEvidence(
                         insider=_text(row.get("Insider")),
                         position=_text(row.get("Position")),
-                        transaction=_text(row.get("Transaction") or row.get("Text")),
+                        transaction=_text(row.get("Transaction")) or _text(row.get("Text")),
                         start_date=_date_value(row.get("Start Date")),
                         shares=_number(row.get("Shares")),
                         value=_number(row.get("Value")),
