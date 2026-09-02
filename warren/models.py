@@ -117,6 +117,32 @@ class EarningsHistoryEvidence(BaseModel):
     source: str = "Yahoo Finance"
 
 
+class TechnicalEvidence(BaseModel):
+    as_of: date | None = None
+    close: float | None = None
+    sma_50: float | None = None
+    sma_200: float | None = None
+    rsi_14: float | None = None
+    macd: float | None = None
+    macd_signal: float | None = None
+    bollinger_upper_20: float | None = None
+    bollinger_lower_20: float | None = None
+    latest_volume: float | None = None
+    avg_volume_20: float | None = None
+    source: str = "Yahoo Finance"
+
+
+class InsiderTransactionEvidence(BaseModel):
+    insider: str | None = None
+    position: str | None = None
+    transaction: str | None = None
+    start_date: date | datetime | None = None
+    shares: float | None = None
+    value: float | None = None
+    ownership: str | None = None
+    source: str = "Yahoo Finance"
+
+
 class MacroEvidence(BaseModel):
     series_id: str
     label: str
@@ -133,16 +159,16 @@ class EvidenceReference(BaseModel):
     publisher: str | None = None
     url: str | None = None
     authority_tier: Literal[1, 2, 3, 4, 5]
-    retrieval_depth: Literal["metadata", "headline", "structured", "full_text"]
+    retrieval_depth: Literal["metadata", "headline", "structured", "excerpt", "full_text"]
 
 
 class EvidenceClaim(BaseModel):
     id: str
-    category: Literal["filing", "news", "estimate_revision", "earnings", "macro"]
+    category: Literal["filing", "news", "estimate_revision", "earnings", "technical", "insider", "macro", "web"]
     claim: str
     as_of: date | datetime | None = None
     authority_tier: Literal[1, 2, 3, 4, 5]
-    retrieval_depth: Literal["metadata", "headline", "structured", "full_text"]
+    retrieval_depth: Literal["metadata", "headline", "structured", "excerpt", "full_text"]
     confidence: Literal["low", "medium", "high"]
     references: list[EvidenceReference] = Field(default_factory=list)
     independent_source_count: int = 1
@@ -155,6 +181,8 @@ class EvidenceBundle(BaseModel):
     news: list[NewsEvidence] = Field(default_factory=list)
     estimate_revisions: list[EstimateRevisionEvidence] = Field(default_factory=list)
     earnings_history: list[EarningsHistoryEvidence] = Field(default_factory=list)
+    technical: list[TechnicalEvidence] = Field(default_factory=list)
+    insider_transactions: list[InsiderTransactionEvidence] = Field(default_factory=list)
     macro: list[MacroEvidence] = Field(default_factory=list)
     claims: list[EvidenceClaim] = Field(default_factory=list)
     source_status: list[SourceStatus] = Field(default_factory=list)
@@ -166,6 +194,8 @@ class EvidenceBundle(BaseModel):
             news=[*self.news, *other.news],
             estimate_revisions=[*self.estimate_revisions, *other.estimate_revisions],
             earnings_history=[*self.earnings_history, *other.earnings_history],
+            technical=[*self.technical, *other.technical],
+            insider_transactions=[*self.insider_transactions, *other.insider_transactions],
             macro=[*self.macro, *other.macro],
             claims=[*self.claims, *other.claims],
             source_status=[*self.source_status, *other.source_status],
