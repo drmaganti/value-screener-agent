@@ -17,6 +17,7 @@ from ..models import (
     MetricSnapshot,
     NewsEvidence,
     TechnicalEvidence,
+    WebEvidence,
 )
 from ..protocols import EvidenceProvider
 
@@ -29,7 +30,7 @@ class EvidenceRouter:
     Bull, Bear, Risk and Final analysis.
     """
 
-    VERSION = "1.1"
+    VERSION = "1.2"
 
     def __init__(self, upstream: EvidenceProvider):
         self.upstream = upstream
@@ -52,6 +53,7 @@ def _raw_item_count(bundle: EvidenceBundle) -> int:
     return (
         len(bundle.filings)
         + len(bundle.news)
+        + len(bundle.web)
         + len(bundle.estimate_revisions)
         + len(bundle.earnings_history)
         + len(bundle.technical)
@@ -121,14 +123,7 @@ def _filing_claim(item: FilingEvidence) -> EvidenceClaim:
         authority_tier=1,
         retrieval_depth="metadata",
         confidence="medium",
-        references=[
-            _reference(
-                item.source,
-                url=item.url,
-                authority_tier=1,
-                retrieval_depth="metadata",
-            )
-        ],
+        references=[_reference(item.source, url=item.url, authority_tier=1, retrieval_depth="metadata")],
         metadata={
             "form": item.form,
             "accession_number": item.accession_number,
@@ -171,6 +166,56 @@ def _news_claim(group: list[NewsEvidence]) -> EvidenceClaim:
     )
 
 
+def _web_authority(url: str) -> int:
+    try:
+        host = (urlsplit(url).hostname or "").lower()
+    except ValueError:
+        return 4
+    if host == "sec.gov" or host.endswith(".sec.gov") or host.endswith(".gov"):
+        return 1
+    return 4
+
+
+def _web_claim(group: list[WebEvidence]) -> EvidenceClaim:
+    first = group[0]
+    canonical = _canonical_url(first.url) or first.url
+    authority = _web_authority(first.url)
+    highlights = [text.strip() for item in group for text in item.highlights if text.strip()]
+    excerpt = highlights[0] if highlights else None
+    claim = f'Retrieved web result: "{first.title}".'
+    if excerpt:
+        claim += f' Query-relevant excerpt: "{excerpt}"'
+    return EvidenceClaim(
+        id=_stable_id("web", canonical),
+        category="web",
+        claim=claim,
+        as_of=first.published_at,
+        authority_tier=authority,
+        retrieval_depth="excerpt",
+        confidence="low",
+        references=[
+            _reference(
+                item.source,
+                publisher=item.author,
+                url=item.url,
+                authority_tier=_web_authority(item.url),
+                retrieval_depth="excerpt",
+            )
+            for item in group
+        ],
+        independent_source_count=1,
+        duplicate_count=max(0, len(group) - 1),
+        metadata={
+            "retrieved_via": first.source,
+            "title": first.title,
+            "highlights": highlights[:5],
+            "query": first.query,
+            "content_retrieved": bool(highlights),
+            "excerpt_only": True,
+        },
+    )
+
+
 def _estimate_claim(item: EstimateRevisionEvidence) -> EvidenceClaim:
     parts = [f"For {item.horizon}, the current EPS estimate is {item.eps_current!r}."]
     if item.eps_30d_ago is not None:
@@ -184,13 +229,7 @@ def _estimate_claim(item: EstimateRevisionEvidence) -> EvidenceClaim:
         authority_tier=2,
         retrieval_depth="structured",
         confidence="high",
-        references=[
-            _reference(
-                item.source,
-                authority_tier=2,
-                retrieval_depth="structured",
-            )
-        ],
+        references=[_reference(item.source, authority_tier=2, retrieval_depth="structured")],
         metadata=item.model_dump(exclude_none=True, mode="json"),
     )
 
@@ -200,21 +239,12 @@ def _earnings_claim(item: EarningsHistoryEvidence) -> EvidenceClaim:
     return EvidenceClaim(
         id=_stable_id("earnings", period),
         category="earnings",
-        claim=(
-            f"For the earnings period {period}, reported EPS was {item.eps_actual!r} "
-            f"versus an estimate of {item.eps_estimate!r}."
-        ),
+        claim=f"For the earnings period {period}, reported EPS was {item.eps_actual!r} versus an estimate of {item.eps_estimate!r}.",
         as_of=item.period,
         authority_tier=2,
         retrieval_depth="structured",
         confidence="high",
-        references=[
-            _reference(
-                item.source,
-                authority_tier=2,
-                retrieval_depth="structured",
-            )
-        ],
+        references=[_reference(item.source, authority_tier=2, retrieval_depth="structured")],
         metadata=item.model_dump(exclude_none=True, mode="json"),
     )
 
@@ -240,13 +270,7 @@ def _technical_claim(item: TechnicalEvidence) -> EvidenceClaim:
         authority_tier=2,
         retrieval_depth="structured",
         confidence="high",
-        references=[
-            _reference(
-                item.source,
-                authority_tier=2,
-                retrieval_depth="structured",
-            )
-        ],
+        references=[_reference(item.source, authority_tier=2, retrieval_depth="structured")],
         metadata=item.model_dump(exclude_none=True, mode="json"),
     )
 
@@ -269,13 +293,7 @@ def _insider_claim(item: InsiderTransactionEvidence, index: int) -> EvidenceClai
         authority_tier=2,
         retrieval_depth="structured",
         confidence="medium",
-        references=[
-            _reference(
-                item.source,
-                authority_tier=2,
-                retrieval_depth="structured",
-            )
-        ],
+        references=[_reference(item.source, authority_tier=2, retrieval_depth="structured")],
         metadata=item.model_dump(exclude_none=True, mode="json"),
     )
 
@@ -290,20 +308,13 @@ def _macro_claim(item: MacroEvidence) -> EvidenceClaim:
         authority_tier=1,
         retrieval_depth="structured",
         confidence="high",
-        references=[
-            _reference(
-                item.source,
-                authority_tier=1,
-                retrieval_depth="structured",
-            )
-        ],
+        references=[_reference(item.source, authority_tier=1, retrieval_depth="structured")],
         metadata=item.model_dump(exclude_none=True, mode="json"),
     )
 
 
 def normalize_claims(bundle: EvidenceBundle) -> tuple[list[EvidenceClaim], int]:
     claims: list[EvidenceClaim] = []
-
     claims.extend(_filing_claim(item) for item in bundle.filings)
     claims.extend(_estimate_claim(item) for item in bundle.estimate_revisions)
     claims.extend(_earnings_claim(item) for item in bundle.earnings_history)
@@ -315,6 +326,11 @@ def normalize_claims(bundle: EvidenceBundle) -> tuple[list[EvidenceClaim], int]:
     for item in bundle.news:
         grouped_news[_normalize_text(item.title)].append(item)
     claims.extend(_news_claim(group) for group in grouped_news.values())
+
+    grouped_web: dict[str, list[WebEvidence]] = defaultdict(list)
+    for item in bundle.web:
+        grouped_web[_canonical_url(item.url) or _normalize_text(item.title)].append(item)
+    claims.extend(_web_claim(group) for group in grouped_web.values())
 
     claims.sort(key=lambda claim: (claim.authority_tier, claim.category, claim.id))
     duplicate_count = sum(claim.duplicate_count for claim in claims)
