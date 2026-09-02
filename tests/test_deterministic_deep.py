@@ -42,4 +42,4 @@ async def test_deterministic_provider_returns_public_verdict_vocabulary():
     assert analysis.thesis
     assert analysis.bull_case
     assert analysis.bear_case
-    assert model == "deterministic-v1"
+    assert model == "deterministic-v1.1"
