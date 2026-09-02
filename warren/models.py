@@ -91,6 +91,16 @@ class NewsEvidence(BaseModel):
     source: str = "Yahoo Finance"
 
 
+class WebEvidence(BaseModel):
+    title: str
+    url: str
+    published_at: datetime | None = None
+    author: str | None = None
+    highlights: list[str] = Field(default_factory=list)
+    query: str | None = None
+    source: str = "Exa"
+
+
 class EstimateRevisionEvidence(BaseModel):
     horizon: str
     analyst_count: int | None = None
@@ -179,6 +189,7 @@ class EvidenceClaim(BaseModel):
 class EvidenceBundle(BaseModel):
     filings: list[FilingEvidence] = Field(default_factory=list)
     news: list[NewsEvidence] = Field(default_factory=list)
+    web: list[WebEvidence] = Field(default_factory=list)
     estimate_revisions: list[EstimateRevisionEvidence] = Field(default_factory=list)
     earnings_history: list[EarningsHistoryEvidence] = Field(default_factory=list)
     technical: list[TechnicalEvidence] = Field(default_factory=list)
@@ -192,6 +203,7 @@ class EvidenceBundle(BaseModel):
         return EvidenceBundle(
             filings=[*self.filings, *other.filings],
             news=[*self.news, *other.news],
+            web=[*self.web, *other.web],
             estimate_revisions=[*self.estimate_revisions, *other.estimate_revisions],
             earnings_history=[*self.earnings_history, *other.earnings_history],
             technical=[*self.technical, *other.technical],
