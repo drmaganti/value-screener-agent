@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from datetime import date
 
-from warren.evidence import CompositeEvidenceProvider, EvidenceRouter, FredMacroEvidenceProvider, SecFilingEvidenceProvider
+from warren.evidence import (
+    CompositeEvidenceProvider,
+    EvidenceRouter,
+    ExaWebEvidenceProvider,
+    FredMacroEvidenceProvider,
+    SecFilingEvidenceProvider,
+)
 from warren.models import (
     EvidenceBundle,
     FilingEvidence,
@@ -11,6 +17,7 @@ from warren.models import (
     NewsEvidence,
     SourceStatus,
     TechnicalEvidence,
+    WebEvidence,
 )
 
 
@@ -50,6 +57,20 @@ class DuplicateNewsProvider:
                     url="https://example.org/story?utm_source=b",
                 ),
             ],
+            web=[
+                WebEvidence(
+                    title="Company investor update",
+                    url="https://investor.example.com/update?utm_source=search",
+                    highlights=["Management discussed updated demand expectations."],
+                    query="company material developments",
+                ),
+                WebEvidence(
+                    title="Duplicate company investor update",
+                    url="https://investor.example.com/update?ref=duplicate",
+                    highlights=["Management discussed updated demand expectations."],
+                    query="company material developments",
+                ),
+            ],
             technical=[
                 TechnicalEvidence(
                     as_of=date(2026, 9, 1),
@@ -87,7 +108,8 @@ def test_evidence_router_normalizes_and_deduplicates_claims():
     bundle = provider.fetch_evidence("AAPL", MetricSnapshot(ticker="AAPL"))
 
     assert len(bundle.news) == 2
-    assert len(bundle.claims) == 4
+    assert len(bundle.web) == 2
+    assert len(bundle.claims) == 5
 
     news_claim = next(claim for claim in bundle.claims if claim.category == "news")
     assert news_claim.retrieval_depth == "headline"
@@ -103,6 +125,12 @@ def test_evidence_router_normalizes_and_deduplicates_claims():
     assert filing_claim.retrieval_depth == "metadata"
     assert filing_claim.metadata["content_retrieved"] is False
 
+    web_claim = next(claim for claim in bundle.claims if claim.category == "web")
+    assert web_claim.retrieval_depth == "excerpt"
+    assert web_claim.duplicate_count == 1
+    assert web_claim.independent_source_count == 1
+    assert web_claim.metadata["excerpt_only"] is True
+
     technical_claim = next(claim for claim in bundle.claims if claim.category == "technical")
     assert technical_claim.confidence == "high"
     assert "14-day RSI 62.0" in technical_claim.claim
@@ -112,9 +140,20 @@ def test_evidence_router_normalizes_and_deduplicates_claims():
     assert "Example Executive" in insider_claim.claim
 
     router_meta = bundle.metadata["evidence_router"]
-    assert router_meta["raw_items"] == 5
-    assert router_meta["normalized_claims"] == 4
-    assert router_meta["deduplicated_items"] == 1
+    assert router_meta["raw_items"] == 7
+    assert router_meta["normalized_claims"] == 5
+    assert router_meta["deduplicated_items"] == 2
+
+
+def test_exa_without_key_degrades_to_unavailable(monkeypatch):
+    monkeypatch.delenv("EXA_API_KEY", raising=False)
+    provider = ExaWebEvidenceProvider(api_key=None)
+
+    bundle = provider.fetch_evidence("AAPL", MetricSnapshot(ticker="AAPL", company_name="Apple Inc."))
+
+    assert bundle.web == []
+    assert bundle.source_status[0].source == "Exa web discovery"
+    assert bundle.source_status[0].status == "unavailable"
 
 
 def test_fred_without_key_degrades_to_unavailable(monkeypatch):
