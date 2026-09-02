@@ -47,8 +47,7 @@ class ExaWebEvidenceProvider:
         return (
             f"Latest material developments for {company} ({ticker}) relevant to an investor: "
             "earnings and guidance, investor relations updates, major product or strategy changes, "
-            "regulation or litigation, competition, and industry demand. Prefer recent primary "
-            "sources and reputable financial journalism; avoid duplicate or syndicated coverage."
+            "regulation or litigation, competition, and industry demand."
         )
 
     def fetch_evidence(self, ticker: str, metrics: MetricSnapshot) -> EvidenceBundle:
@@ -70,12 +69,14 @@ class ExaWebEvidenceProvider:
             "numResults": self.num_results,
             "userLocation": "US",
             "moderation": True,
-            "contents": {
-                "highlights": {"maxCharacters": self.highlight_characters},
-            },
+            "contents": {"highlights": True},
+            "systemPrompt": (
+                "Prefer official company investor-relations pages, SEC/government sources and reputable "
+                "financial journalism. Avoid duplicate or syndicated coverage when possible."
+            ),
         }
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "x-api-key": self.api_key,
             "Content-Type": "application/json",
         }
 
@@ -91,18 +92,21 @@ class ExaWebEvidenceProvider:
             if not url or not title or url in seen_urls:
                 continue
             seen_urls.add(url)
-            highlights = [
-                str(value).strip()
-                for value in (result.get("highlights") or [])
-                if str(value).strip()
-            ]
+            highlights = []
+            for value in result.get("highlights") or []:
+                text = str(value).strip()
+                if not text:
+                    continue
+                highlights.append(text[: self.highlight_characters])
+                if len(highlights) >= 3:
+                    break
             bundle.web.append(
                 WebEvidence(
                     title=title,
                     url=url,
                     published_at=self._published_at(result.get("publishedDate")),
                     author=str(result.get("author")).strip() if result.get("author") else None,
-                    highlights=highlights[:3],
+                    highlights=highlights,
                     query=query,
                 )
             )
