@@ -104,7 +104,7 @@ This is not a complete investment-risk model. Planned additions include interest
 
 Market context is deliberately low weight. Initial inputs compare price with the 200-day average and 52-week high.
 
-Technical context should not turn a weak business into a high-quality investment. Strategy-specific technical rules belong in calling strategies such as Weekly Value Screen.
+Technical context should not turn a weak business into a high-quality investment. User-specific technical or trading rules remain outside Ask Warren's research methodology.
 
 ---
 

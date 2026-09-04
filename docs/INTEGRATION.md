@@ -35,72 +35,21 @@ POST /v1/analyze
 
 See `API.md` for request/response schemas.
 
-## Parse integration
-
-Recommended flow:
+## Ask Warren product flow
 
 ```text
-User searches or discovers a stock in Parse
-                |
-       optional Warren Screen
-                |
-User requests / opens full stock research
-                |
-           Warren Deep
-                |
-Parse renders scores + thesis + bull/bear/risk
-```
-
-Parse should not duplicate Warren scoring or prompts. It should own presentation and product-specific workflow.
-
-## Value Screener integration
-
-If Value Screener is being used as a general discovery product:
-
-```text
-Value Screener universe / user filters
+User enters a ticker or screens a universe
                 |
            Warren Screen
                 |
-             ranking
+User requests full company research
                 |
-     optional Warren Deep
+            Warren Deep
+                |
+Ask Warren renders scores + thesis + bull/bear/risk
 ```
 
-## Weekly Value Screen integration
-
-The existing weekly strategy has its own thesis: find healthy large companies that have pulled back and may be temporarily mispriced.
-
-Keep its strategy-specific rules outside Warren:
-
-```text
-~600-stock universe
-       |
-Weekly strategy cheap filters
-- pullback / RSI
-- market cap / liquidity
-- earnings blackout
-- prior-pick exclusion
-- other strategy gates
-       |
-strategy survivors
-       |
-Warren Screen
-- fundamentals
-- valuation
-- quality
-- growth
-- risk
-- market context
-       |
-ranked finalists
-       |
-Warren Deep on a small N
-       |
-weekly report / logging
-```
-
-This preserves the Weekly Value Screen strategy while sharing the general analysis engine.
+The product interface should not duplicate Warren scoring, evidence collection or prompts. It owns presentation and user workflow while the engine owns the research methodology.
 
 ## Future applications
 

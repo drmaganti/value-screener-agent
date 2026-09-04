@@ -2,11 +2,11 @@
 
 ## System boundary
 
-Warren is a domain module with optional delivery adapters. Client products should depend on Warren's public methods or HTTP contract, not on Yahoo Finance, SEC, FRED or Gemini directly.
+Warren is a domain module with optional delivery adapters. Ask Warren interfaces should depend on Warren's public methods or HTTP contract, not on Yahoo Finance, SEC, FRED or Gemini directly.
 
 ```text
-Client products
-(Parse / Value Screener / weekly workflow / future app)
+Ask Warren interfaces
+(web app / API / scheduled research)
                          |
                +---------+---------+
                |                   |
@@ -141,27 +141,6 @@ independent bull/bear/risk reasoning
 final synthesis
 ```
 
-## Strategy separation
-
-Warren Screen is not the Weekly Value Screen strategy.
-
-A strategy can wrap Warren:
-
-```text
-Weekly strategy rules
-(pullback, RSI, earnings blackout, prior-pick exclusion, catalyst rules)
-                         |
-                    survivors
-                         |
-                   Warren Screen
-                         |
-                    finalists
-                         |
-                    Warren Deep
-```
-
-This allows other strategies to use the same intelligence engine without inheriting Weekly Value Screen assumptions.
-
 ## Dependency direction
 
 Desired dependency direction:
@@ -173,8 +152,6 @@ API/UI -> Warren -> provider protocols <- provider implementations
 Never:
 
 ```text
-Warren -> Parse
-Warren -> Value Screener
 Warren -> a specific UI
 ```
 

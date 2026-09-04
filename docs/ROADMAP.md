@@ -234,7 +234,7 @@ Production-readiness criteria should include:
 - [ ] Warren Screen ranking.
 - [ ] Transparent factor contributions.
 - [ ] One-click Deep analysis from results.
-- [ ] Keep generic Warren screening separate from strategy-specific Weekly Value Screen rules.
+- [ ] Keep generic Warren screening separate from user-defined portfolio and trading rules.
 
 ---
 
@@ -273,30 +273,14 @@ Explicit boundary: portfolio intelligence should not automatically become person
 
 ---
 
-## Integration milestones
+## Product milestones
 
-### Weekly Value Screen
-
-- preserve existing strategy rules;
-- call Warren Screen on strategy survivors;
-- compare ranking with current weekly composite;
-- run shadow mode before changing published picks;
-- call Warren Deep on only the final small set;
-- measure incremental usefulness and cost.
-
-### Parse
-
-- define stock detail UX;
-- call Deep on explicit user action or selected candidate;
+- define the stock-detail experience;
+- run Deep on explicit user action or a selected screening candidate;
 - render company quality separately from valuation;
 - show supporting evidence and missing-data confidence;
-- make source-status/evidence provenance visible.
-
-### Value Screener
-
-- decide which current scoring should remain strategy-specific versus move into Warren;
-- avoid double-counting duplicated factors;
-- use Warren as shared intelligence rather than forked logic.
+- make source status and evidence provenance visible;
+- avoid double-counting factors between screening and Deep analysis.
 
 ---
 
@@ -321,6 +305,6 @@ Features should move up the roadmap when they improve one or more of:
 3. **Decision usefulness** — information helps users distinguish quality, valuation and risk.
 4. **Reliability** — fewer provider, latency or freshness failures.
 5. **Evaluation quality** — we can prove whether the feature improves results.
-6. **Reuse** — the capability benefits Ask Warren, Parse, Value Screener or future products without duplicating logic.
+6. **Reuse** — the capability benefits multiple Ask Warren workflows without duplicating logic.
 
 Visual polish and feature breadth should not outrank factual quality, evidence coverage or methodological integrity.

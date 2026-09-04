@@ -2,12 +2,12 @@
 
 ## Vision
 
-Warren is a reusable stock-intelligence capability that helps software products answer two different questions efficiently:
+Ask Warren helps investors answer two different questions efficiently:
 
 1. **Screen:** Which companies in a universe deserve more research?
 2. **Deep:** For one company, what is the strongest evidence for and against the investment thesis?
 
-The engine should be reusable from Parse, Value Screener, scheduled workflows and future products without duplicating stock-analysis logic.
+The reusable Warren engine keeps screening and deep-analysis logic consistent across Ask Warren's interfaces and future research workflows.
 
 ## Product principles
 
@@ -21,12 +21,11 @@ The engine should be reusable from Parse, Value Screener, scheduled workflows an
 
 ## Primary users
 
-### Product integrations
+### Ask Warren experiences
 
-- Parse: deep analysis after a user identifies a company.
-- Value Screener: general ranking after strategy-specific filtering.
-- Weekly Value Screen: strategy funnel -> Warren screen -> optional Warren deep on finalists.
-- Future watchlist, portfolio or research products.
+- Single-company research after a user enters a ticker.
+- Transparent screening across a user-supplied universe.
+- Future watchlist, portfolio and scheduled research workflows.
 
 ### End-user jobs
 
@@ -80,7 +79,7 @@ Warren does not currently:
 - replace licensed financial advice;
 - run full multi-agent analysis across an index;
 - maintain index constituent lists as part of the core engine;
-- define the Weekly Value Screen strategy itself.
+- define or execute user-specific trading strategies.
 
 ## Success metrics
 

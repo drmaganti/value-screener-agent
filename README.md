@@ -1,8 +1,8 @@
 # Warren
 
-Warren is a reusable stock-intelligence engine designed to be called by any product that needs stock screening or deeper investment research.
+Ask Warren is a stock-research product backed by a reusable intelligence engine for screening and deeper investment research.
 
-It is intentionally **not tied to Parse, Value Screener, a specific UI, a specific market-data vendor, or a specific LLM**.
+Its provider interfaces are intentionally independent of any specific market-data vendor or LLM.
 
 > Research software only. Warren does not provide personalized investment advice or execute trades.
 
@@ -54,7 +54,7 @@ Screen mode:
 - does not collect news, filings or macro evidence;
 - scores fundamentals, valuation, business quality, growth, risk resilience and market context;
 - ranks a caller-supplied universe;
-- can be used inside a weekly strategy funnel, Parse, Value Screener or another future product.
+- powers Ask Warren's transparent stock screener and can support future research workflows.
 
 ### Deep
 

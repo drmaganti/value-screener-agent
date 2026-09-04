@@ -1,10 +1,10 @@
 # Architecture / Product Decisions
 
-This file records decisions that should not be rediscovered each time Warren is integrated into a new product.
+This file records architectural and product decisions for Ask Warren.
 
 ## D-001: Warren is a standalone capability
 
-**Decision:** stock intelligence lives in a reusable module/service rather than inside Parse or Value Screener.
+**Decision:** stock intelligence lives in a reusable module/service behind the Ask Warren product experience.
 
 **Reason:** one methodology, one evaluation surface, one place to improve data/providers/prompts.
 
@@ -23,11 +23,11 @@ This file records decisions that should not be rediscovered each time Warren is 
 
 **Reason:** Screen and Deep are conceptually different jobs and should not overload a single-stock input.
 
-## D-004: Screen is not the Weekly Value Screen strategy
+## D-004: Screen is not an investment strategy
 
-**Decision:** Weekly Value Screen retains strategy-specific logic (pullback, RSI, earnings blackout, repeat-pick rules, catalyst strategy). Warren Screen provides general company ranking.
+**Decision:** Warren Screen provides general company ranking and does not embed portfolio or trading-strategy rules.
 
-**Reason:** the shared module must be useful to strategies/products that do not share a contrarian-value thesis.
+**Reason:** users should be able to distinguish transparent company analysis from a particular trading strategy.
 
 ## D-005: Keep TradingAgents' challenge architecture in Deep
 

@@ -34,7 +34,7 @@ class SecFilingEvidenceProvider:
         self.max_filings = max(0, max_filings)
         self.user_agent = user_agent or os.getenv(
             "SEC_USER_AGENT",
-            "WarrenStockIntelligence/0.3 https://github.com/drmaganti/value-screener-agent",
+            "AskWarren/0.3 https://github.com/drmaganti/ask-warren",
         )
         self.timeout = timeout
         self._ticker_map: dict[str, tuple[int, str]] | None = None
