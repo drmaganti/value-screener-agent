@@ -73,7 +73,7 @@ Deep mode currently runs:
 Structured company metrics
           +
 Source-attributed evidence
-  |-- SEC recent filing metadata
+  |-- SEC filing metadata + structured XBRL facts
   |-- Yahoo recent news headlines
   |-- Yahoo EPS/revenue estimates + revisions
   |-- Yahoo earnings surprise history
@@ -97,7 +97,7 @@ what changes the view / verdict / confidence
 
 Warren treats source material according to what was actually retrieved:
 
-- SEC entries are **filing metadata**, not filing-content summaries. Deep must not claim what a filing says unless filing text is added as a future evidence source.
+- SEC filing entries are metadata; SEC XBRL entries are structured primary-source facts. Neither means the narrative filing text was read.
 - Yahoo news entries are **headlines**, not full-article content. Deep must not infer facts beyond the headline.
 - Estimate revisions, earnings history and FRED observations are structured values and can be compared directly.
 - Every evidence source reports `ok`, `partial`, `unavailable` or `error`; missing sources reduce confidence rather than silently disappearing.
@@ -179,7 +179,7 @@ The transparent DCF V1 milestone is complete. It normalizes available annual fre
 Still required before production investment-research reliance:
 
 - score calibration/backtesting;
-- primary-source filing text/XBRL extraction rather than metadata alone;
+- primary-source filing narrative-text extraction beyond metadata and XBRL facts;
 - production/SLA-backed market and news providers;
 - evidence freshness/caching policy;
 - methodology/model versioning in stored outputs;
@@ -199,7 +199,7 @@ export GEMINI_MODEL="gemini-2.5-flash"
 export FRED_API_KEY="..."
 
 # Recommended for production automated SEC access.
-export SEC_USER_AGENT="WarrenStockIntelligence/0.3 contact@example.com"
+export SEC_USER_AGENT="AskWarren/0.4 contact@example.com"
 ```
 
 Screen mode does not require an LLM key or evidence-provider keys.

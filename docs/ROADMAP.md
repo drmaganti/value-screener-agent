@@ -115,7 +115,8 @@ Completed in current v0.3 slice:
 
 Remaining v0.3 quality work:
 
-- [ ] actual SEC filing text/XBRL facts rather than filing metadata only;
+- [x] latest structured SEC XBRL facts with filing-period and accession provenance;
+- [ ] actual SEC filing text rather than filing metadata only;
 - [ ] SEDAR+ / Canadian issuer evidence strategy;
 - [ ] earnings release and guidance text;
 - [ ] full/licensed news content where terms permit;
@@ -129,7 +130,7 @@ Current Deep architecture:
 
 ```text
 Fundamentals / structured metrics
-SEC filing metadata
+SEC filing metadata + structured XBRL facts
 Yahoo news headlines
 Yahoo estimate revisions + earnings history
 FRED macro (optional)

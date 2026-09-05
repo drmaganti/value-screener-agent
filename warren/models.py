@@ -89,6 +89,20 @@ class FilingEvidence(BaseModel):
     source: str = "SEC EDGAR"
 
 
+class SecFactEvidence(BaseModel):
+    concept: str
+    label: str
+    value: float
+    unit: str
+    period_end: date | None = None
+    filed_at: date | None = None
+    fiscal_period: str | None = None
+    form: str | None = None
+    accession_number: str | None = None
+    url: str | None = None
+    source: str = "SEC EDGAR XBRL"
+
+
 class NewsEvidence(BaseModel):
     title: str
     publisher: str | None = None
@@ -180,7 +194,7 @@ class EvidenceReference(BaseModel):
 
 class EvidenceClaim(BaseModel):
     id: str
-    category: Literal["filing", "news", "estimate_revision", "earnings", "technical", "insider", "macro", "web"]
+    category: Literal["filing", "sec_fact", "news", "estimate_revision", "earnings", "technical", "insider", "macro", "web"]
     claim: str
     as_of: date | datetime | None = None
     authority_tier: Literal[1, 2, 3, 4, 5]
@@ -194,6 +208,7 @@ class EvidenceClaim(BaseModel):
 
 class EvidenceBundle(BaseModel):
     filings: list[FilingEvidence] = Field(default_factory=list)
+    sec_facts: list[SecFactEvidence] = Field(default_factory=list)
     news: list[NewsEvidence] = Field(default_factory=list)
     web: list[WebEvidence] = Field(default_factory=list)
     estimate_revisions: list[EstimateRevisionEvidence] = Field(default_factory=list)
@@ -208,6 +223,7 @@ class EvidenceBundle(BaseModel):
     def merge(self, other: "EvidenceBundle") -> "EvidenceBundle":
         return EvidenceBundle(
             filings=[*self.filings, *other.filings],
+            sec_facts=[*self.sec_facts, *other.sec_facts],
             news=[*self.news, *other.news],
             web=[*self.web, *other.web],
             estimate_revisions=[*self.estimate_revisions, *other.estimate_revisions],

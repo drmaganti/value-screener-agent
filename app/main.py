@@ -48,7 +48,7 @@ engine = Warren(
 
 app = FastAPI(
     title="Ask Warren Stock Intelligence",
-    version="0.4.0",
+    version="0.4.1",
     description="Standalone stock research experience powered by the reusable Warren engine.",
 )
 

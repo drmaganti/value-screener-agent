@@ -5,7 +5,7 @@ from datetime import date
 
 import httpx
 
-from ..models import EvidenceBundle, FilingEvidence, MetricSnapshot, SourceStatus
+from ..models import EvidenceBundle, FilingEvidence, MetricSnapshot, SecFactEvidence, SourceStatus
 
 
 class SecFilingEvidenceProvider:
@@ -18,6 +18,20 @@ class SecFilingEvidenceProvider:
 
     TICKER_MAP_URL = "https://www.sec.gov/files/company_tickers.json"
     SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
+    COMPANY_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
+    FACT_CONCEPTS = (
+        ("RevenueFromContractWithCustomerExcludingAssessedTax", "Revenue", "USD"),
+        ("Revenues", "Revenue", "USD"),
+        ("NetIncomeLoss", "Net income", "USD"),
+        ("OperatingIncomeLoss", "Operating income", "USD"),
+        ("NetCashProvidedByUsedInOperatingActivities", "Operating cash flow", "USD"),
+        ("PaymentsToAcquirePropertyPlantAndEquipment", "Capital expenditures", "USD"),
+        ("Assets", "Total assets", "USD"),
+        ("Liabilities", "Total liabilities", "USD"),
+        ("StockholdersEquity", "Stockholders' equity", "USD"),
+        ("ShareBasedCompensation", "Stock-based compensation", "USD"),
+        ("CommonStockSharesOutstanding", "Common shares outstanding", "shares"),
+    )
     FORMS = {
         "10-K",
         "10-K/A",
@@ -34,7 +48,7 @@ class SecFilingEvidenceProvider:
         self.max_filings = max(0, max_filings)
         self.user_agent = user_agent or os.getenv(
             "SEC_USER_AGENT",
-            "AskWarren/0.3 https://github.com/drmaganti/ask-warren",
+            "AskWarren/0.4 https://github.com/drmaganti/ask-warren",
         )
         self.timeout = timeout
         self._ticker_map: dict[str, tuple[int, str]] | None = None
@@ -75,6 +89,38 @@ class SecFilingEvidenceProvider:
         except ValueError:
             return None
 
+    @classmethod
+    def _extract_company_facts(cls, payload: dict, cik: int) -> list[SecFactEvidence]:
+        us_gaap = ((payload.get("facts") or {}).get("us-gaap") or {})
+        results: list[SecFactEvidence] = []
+        seen_labels: set[str] = set()
+        for concept, label, preferred_unit in cls.FACT_CONCEPTS:
+            if label in seen_labels:
+                continue
+            fact = us_gaap.get(concept) or {}
+            unit_rows = (fact.get("units") or {}).get(preferred_unit) or []
+            eligible = [row for row in unit_rows if row.get("form") in {"10-K", "10-Q"} and row.get("val") is not None]
+            if not eligible:
+                continue
+            row = max(eligible, key=lambda item: (str(item.get("filed") or ""), str(item.get("end") or "")))
+            accession = str(row.get("accn") or "")
+            accession_path = accession.replace("-", "")
+            url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{accession_path}/" if accession_path else None
+            results.append(SecFactEvidence(
+                concept=concept,
+                label=label,
+                value=float(row["val"]),
+                unit=preferred_unit,
+                period_end=cls._parse_date(row.get("end")),
+                filed_at=cls._parse_date(row.get("filed")),
+                fiscal_period=row.get("fp"),
+                form=row.get("form"),
+                accession_number=accession or None,
+                url=url,
+            ))
+            seen_labels.add(label)
+        return results
+
     def fetch_evidence(self, ticker: str, metrics: MetricSnapshot) -> EvidenceBundle:
         symbol = ticker.strip().upper()
         bundle = EvidenceBundle()
@@ -106,6 +152,12 @@ class SecFilingEvidenceProvider:
             response = client.get(self.SUBMISSIONS_URL.format(cik=cik))
             response.raise_for_status()
             payload = response.json()
+            try:
+                facts_response = client.get(self.COMPANY_FACTS_URL.format(cik=cik))
+                facts_response.raise_for_status()
+                bundle.sec_facts = self._extract_company_facts(facts_response.json(), cik)
+            except (httpx.HTTPError, ValueError, TypeError):
+                bundle.sec_facts = []
 
         recent = (payload.get("filings") or {}).get("recent") or {}
         forms = recent.get("form") or []
@@ -140,8 +192,8 @@ class SecFilingEvidenceProvider:
         bundle.source_status.append(
             SourceStatus(
                 source="SEC EDGAR",
-                status="ok" if bundle.filings else "partial",
-                detail=f"{len(bundle.filings)} recent material filings returned",
+                status="ok" if bundle.filings and bundle.sec_facts else "partial",
+                detail=f"{len(bundle.filings)} recent material filings and {len(bundle.sec_facts)} latest XBRL facts returned",
             )
         )
         return bundle

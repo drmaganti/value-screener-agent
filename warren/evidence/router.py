@@ -16,6 +16,7 @@ from ..models import (
     MacroEvidence,
     MetricSnapshot,
     NewsEvidence,
+    SecFactEvidence,
     TechnicalEvidence,
     WebEvidence,
 )
@@ -30,7 +31,7 @@ class EvidenceRouter:
     Bull, Bear, Risk and Final analysis.
     """
 
-    VERSION = "1.2"
+    VERSION = "1.3"
 
     def __init__(self, upstream: EvidenceProvider):
         self.upstream = upstream
@@ -52,6 +53,7 @@ class EvidenceRouter:
 def _raw_item_count(bundle: EvidenceBundle) -> int:
     return (
         len(bundle.filings)
+        + len(bundle.sec_facts)
         + len(bundle.news)
         + len(bundle.web)
         + len(bundle.estimate_revisions)
@@ -130,6 +132,22 @@ def _filing_claim(item: FilingEvidence) -> EvidenceClaim:
             "primary_document": item.primary_document,
             "content_retrieved": False,
         },
+    )
+
+
+def _sec_fact_claim(item: SecFactEvidence) -> EvidenceClaim:
+    period = item.period_end.isoformat() if item.period_end else "an unspecified period"
+    key = f"{item.concept}:{period}:{item.accession_number or ''}"
+    return EvidenceClaim(
+        id=_stable_id("sec_fact", key),
+        category="sec_fact",
+        claim=f"SEC XBRL reports {item.label} of {item.value:g} {item.unit} for the period ending {period}.",
+        as_of=item.period_end,
+        authority_tier=1,
+        retrieval_depth="structured",
+        confidence="high",
+        references=[_reference(item.source, url=item.url, authority_tier=1, retrieval_depth="structured")],
+        metadata=item.model_dump(exclude_none=True, mode="json"),
     )
 
 
@@ -316,6 +334,7 @@ def _macro_claim(item: MacroEvidence) -> EvidenceClaim:
 def normalize_claims(bundle: EvidenceBundle) -> tuple[list[EvidenceClaim], int]:
     claims: list[EvidenceClaim] = []
     claims.extend(_filing_claim(item) for item in bundle.filings)
+    claims.extend(_sec_fact_claim(item) for item in bundle.sec_facts)
     claims.extend(_estimate_claim(item) for item in bundle.estimate_revisions)
     claims.extend(_earnings_claim(item) for item in bundle.earnings_history)
     claims.extend(_technical_claim(item) for item in bundle.technical)

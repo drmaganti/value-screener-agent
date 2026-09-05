@@ -160,7 +160,8 @@ Values above are schema examples, not live financial data.
 
 ### Evidence semantics
 
-- `filings` currently contains SEC filing metadata only. It does not mean Warren has read the filing body.
+- `filings` contains SEC filing metadata and does not mean Warren has read the filing body.
+- `sec_facts` contains selected structured SEC XBRL values with periods, forms and accession references.
 - `news` currently contains source-attributed headlines only. It does not mean Warren has retrieved full article text.
 - `estimate_revisions` and `earnings_history` contain structured Yahoo/yfinance values when available.
 - `macro` contains configured FRED series when `FRED_API_KEY` is available.

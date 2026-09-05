@@ -25,6 +25,8 @@ Current use:
 - recent submissions metadata from `data.sec.gov`;
 - selected forms: `10-K`, `10-Q`, `8-K`, `20-F`, `40-F`, `6-K` and amendments;
 - form, filing date, accession number, primary document name and EDGAR URL.
+- latest structured US-GAAP XBRL facts for revenue, earnings, operating cash flow, capital expenditures, assets, liabilities, equity, stock compensation and shares when reported;
+- fiscal period, period end, filing date and accession provenance for every returned XBRL fact.
 
 Authentication:
 
@@ -34,7 +36,7 @@ Authentication:
 
 Important limitation:
 
-Warren v0.3 retrieves **filing metadata, not filing text**. A Deep analysis may refer to the existence/date/form of a filing, but may not claim what management, risk factors, financial statements or guidance inside that filing say.
+Warren retrieves filing metadata and selected structured XBRL facts, but **not filing narrative text**. Deep may use returned XBRL values as primary-source structured evidence. It may not claim what management, risk factors, MD&A or guidance say unless filing text is retrieved separately.
 
 Canadian `.TO` symbols are not automatically mapped to a possible US cross-listing because Warren should not guess ticker identity.
 

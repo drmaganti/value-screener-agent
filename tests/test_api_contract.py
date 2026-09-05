@@ -46,6 +46,7 @@ def test_analyze_page_is_served():
     assert "Run Analysis" in response.text
     assert "Evidence Coverage" in response.text
     assert "Normalized Evidence Claims" in response.text
+    assert "SEC XBRL Fundamentals" in response.text
     assert "Technical Snapshot" in response.text
     assert "Insider Activity" in response.text
     assert "Web Discovery" in response.text

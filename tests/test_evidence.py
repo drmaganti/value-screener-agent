@@ -175,3 +175,30 @@ def test_sec_does_not_guess_cross_listing_for_tsx():
     assert bundle.filings == []
     assert bundle.source_status[0].source == "SEC EDGAR"
     assert bundle.source_status[0].status == "unavailable"
+
+
+def test_sec_extracts_latest_structured_xbrl_facts():
+    payload = {
+        "facts": {
+            "us-gaap": {
+                "RevenueFromContractWithCustomerExcludingAssessedTax": {
+                    "units": {
+                        "USD": [
+                            {"val": 90, "end": "2025-12-31", "filed": "2026-02-01", "form": "10-K", "fp": "FY", "accn": "0001-26-000001"},
+                            {"val": 100, "end": "2026-06-30", "filed": "2026-08-01", "form": "10-Q", "fp": "Q2", "accn": "0001-26-000002"},
+                        ]
+                    }
+                },
+                "NetIncomeLoss": {
+                    "units": {"USD": [{"val": 12, "end": "2026-06-30", "filed": "2026-08-01", "form": "10-Q", "fp": "Q2", "accn": "0001-26-000002"}]}
+                },
+            }
+        }
+    }
+
+    facts = SecFilingEvidenceProvider._extract_company_facts(payload, 1)
+
+    assert [fact.label for fact in facts] == ["Revenue", "Net income"]
+    assert facts[0].value == 100
+    assert facts[0].period_end == date(2026, 6, 30)
+    assert facts[0].source == "SEC EDGAR XBRL"
