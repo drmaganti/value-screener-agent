@@ -249,12 +249,28 @@ class DcfSensitivityPoint(BaseModel):
     fair_value_per_share: float
 
 
+class DiscountRateDetails(BaseModel):
+    method: str
+    risk_free_rate: float
+    equity_risk_premium: float
+    beta: float
+    cost_of_equity: float
+    pre_tax_cost_of_debt: float
+    tax_rate: float
+    equity_weight: float
+    debt_weight: float
+    calculated_wacc: float
+    applied_discount_rate: float
+    assumption_basis: list[str] = Field(default_factory=list)
+
+
 class DcfResult(BaseModel):
     status: Literal["available", "unavailable"]
     methodology_version: str
     reason: str | None = None
     base_free_cash_flow: float | None = None
     normalization_method: str | None = None
+    discount_rate_details: DiscountRateDetails | None = None
     net_cash: float | None = None
     shares_outstanding: float | None = None
     current_price: float | None = None

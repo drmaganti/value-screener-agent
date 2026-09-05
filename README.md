@@ -183,7 +183,7 @@ Still required before production investment-research reliance:
 - production/SLA-backed market and news providers;
 - evidence freshness/caching policy;
 - methodology/model versioning in stored outputs;
-- company-specific discount-rate methodology and DCF outcome validation;
+- DCF outcome validation against later realized cash flows;
 - deeper evaluation of factuality and investment usefulness.
 
 ## Configuration

@@ -260,7 +260,9 @@ Where available, forecast assumptions may be anchored by:
 
 The LLM may explain or challenge assumptions but may not silently replace the deterministic DCF calculation.
 
-The current `dcf-v0.2` implementation normalizes base FCF as the median of up to three positive annual observations when at least two are available. Otherwise it uses current FCF and labels that fallback explicitly. Base growth is anchored to the median of available Yahoo forward revenue and earnings growth estimates, bounded between 2% and 12%; when both estimates are unavailable, the documented fallback is 6%. Bear and Bull growth are deterministic adjustments around that base. Discount rates and terminal growth remain configured methodology assumptions rather than company-specific WACC estimates.
+The current `dcf-v0.3` implementation normalizes base FCF as the median of up to three positive annual observations when at least two are available. Otherwise it uses current FCF and labels that fallback explicitly. Base growth is anchored to the median of available Yahoo forward revenue and earnings growth estimates, bounded between 2% and 12%; when both estimates are unavailable, the documented fallback is 6%. Bear and Bull growth are deterministic adjustments around that base.
+
+The base discount rate uses a CAPM-style cost of equity derived from company beta, plus an after-tax debt cost weighted by market capitalization and reported debt. The risk-free rate, equity-risk premium, debt cost and tax rate are versioned configured assumptions. Missing or unsupported beta falls back to 1.0; incomplete capital structure falls back to an all-equity weighting; the final rate is bounded between 7% and 15%. Bear and Bull scenarios add or subtract one percentage point within those bounds. These choices and fallbacks are returned with every DCF result.
 
 ### Scenario model
 
