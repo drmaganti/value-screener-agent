@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from .models import DeepResponse, EvidenceBundle, MetricSnapshot, ScreenRequest, ScreenResponse, ScreenResult, SourceStatus
+from .dcf import calculate_dcf
 from .protocols import DeepAnalysisProvider, EvidenceProvider, MarketDataProvider
 from .scoring import score_metrics
 
@@ -83,6 +84,7 @@ class Warren:
         symbol = ticker.strip().upper()
         metrics = await asyncio.to_thread(self.market_data.fetch_metrics, symbol)
         scores = score_metrics(metrics)
+        dcf = calculate_dcf(metrics)
         evidence = EvidenceBundle()
 
         if self.evidence is not None:
@@ -102,6 +104,7 @@ class Warren:
             ticker=metrics.ticker,
             metrics=metrics,
             scores=scores,
+            dcf=dcf,
             evidence=evidence,
             missing_data=missing_fields(metrics),
             analysis=analysis,

@@ -172,9 +172,9 @@ See [docs/API.md](docs/API.md).
 
 ## Current status
 
-**v0.3** establishes the reusable evidence layer and grounds Deep mode in filings metadata, news headlines, analyst estimate revisions, recent earnings history and optional macro data.
+**v0.3** establishes the reusable evidence layer and grounds Deep mode in filings metadata, news headlines, analyst estimate revisions, recent earnings history and optional macro data. The first deterministic DCF slice now adds transparent Bear/Base/Bull values and sensitivity output when the required cash-flow, balance-sheet and share-count inputs are available.
 
-The Ask Warren UX and the deterministic DCF implementation are the next product layer over this engine. The public methodology route now documents the intended user-facing research contract before those capabilities are presented as complete.
+The Ask Warren UX and DCF methodology remain under active development. Historical free-cash-flow normalization and consensus-derived assumptions are not yet implemented, so the current DCF clearly identifies current free cash flow as its unnormalized base.
 
 Still required before production investment-research reliance:
 
@@ -183,7 +183,7 @@ Still required before production investment-research reliance:
 - production/SLA-backed market and news providers;
 - evidence freshness/caching policy;
 - methodology/model versioning in stored outputs;
-- deterministic DCF implementation and validation;
+- historical DCF input normalization and validation;
 - deeper evaluation of factuality and investment usefulness.
 
 ## Configuration

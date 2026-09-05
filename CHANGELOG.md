@@ -6,6 +6,9 @@ All notable product/module changes should be recorded here.
 
 ### Added
 
+- Deterministic five-year DCF engine with Bear/Base/Bull scenarios, per-share values, implied upside/downside and a 3×3 discount-rate/terminal-growth sensitivity grid.
+- Explicit DCF unavailable states for missing inputs, non-positive free cash flow and invalid share counts.
+- Yahoo Finance snapshot inputs for cash, debt, shares outstanding and retrieval time.
 - Public Ask Warren methodology page served at `GET /methodology` in the approved dark visual direction.
 - User-facing explanation of deterministic scoring, evidence discipline, Bull/Bear/Risk synthesis, verdict confidence and methodology versioning.
 - Three-state Ask Warren verdict language: `Attractive`, `Watch`, `Avoid`.
@@ -14,6 +17,7 @@ All notable product/module changes should be recorded here.
 
 ### Changed
 
+- Deep API responses and the Analyze page now expose the deterministic DCF result, assumptions, source, methodology version and current normalization limitation.
 - Expanded `docs/METHODOLOGY.md` from the initial score description into the full research-methodology contract for Warren and Ask Warren.
 - README now distinguishes the reusable Warren engine from the user-facing Ask Warren product and documents the public methodology route.
 

@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from warren.models import CategoryScores, DeepAnalysis, EvidenceBundle, MetricSnapshot, ScreenResult
+from warren.models import CategoryScores, DcfResult, DeepAnalysis, EvidenceBundle, MetricSnapshot, ScreenResult
 
 
 class AnalyzeRequest(BaseModel):
@@ -37,6 +37,7 @@ class AnalyzeResponse(BaseModel):
     results: list[ScreenResult] | None = None
     metrics: MetricSnapshot | None = None
     scores: CategoryScores | None = None
+    dcf: DcfResult | None = None
     evidence: EvidenceBundle | None = None
     missing_data: list[str] = Field(default_factory=list)
     analysis: DeepAnalysis | None = None

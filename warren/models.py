@@ -21,6 +21,10 @@ class MetricSnapshot(BaseModel):
     enterprise_to_ebitda: float | None = None
     free_cash_flow: float | None = None
     operating_cash_flow: float | None = None
+    total_cash: float | None = None
+    total_debt: float | None = None
+    shares_outstanding: float | None = None
+    fetched_at: datetime | None = None
     revenue_growth: float | None = None
     earnings_growth: float | None = None
     gross_margin: float | None = None
@@ -227,10 +231,42 @@ class DeepAnalysis(BaseModel):
     confidence: Literal["low", "medium", "high"]
 
 
+class DcfScenario(BaseModel):
+    name: Literal["bear", "base", "bull"]
+    forecast_years: int
+    fcf_growth: float
+    discount_rate: float
+    terminal_growth: float
+    fair_value_per_share: float
+    upside_downside: float | None = None
+
+
+class DcfSensitivityPoint(BaseModel):
+    discount_rate: float
+    terminal_growth: float
+    fair_value_per_share: float
+
+
+class DcfResult(BaseModel):
+    status: Literal["available", "unavailable"]
+    methodology_version: str
+    reason: str | None = None
+    base_free_cash_flow: float | None = None
+    net_cash: float | None = None
+    shares_outstanding: float | None = None
+    current_price: float | None = None
+    input_source: str
+    input_as_of: datetime | None = None
+    scenarios: list[DcfScenario] = Field(default_factory=list)
+    sensitivity: list[DcfSensitivityPoint] = Field(default_factory=list)
+    caveats: list[str] = Field(default_factory=list)
+
+
 class DeepResponse(BaseModel):
     ticker: str
     metrics: MetricSnapshot
     scores: CategoryScores
+    dcf: DcfResult
     evidence: EvidenceBundle = Field(default_factory=EvidenceBundle)
     missing_data: list[str] = Field(default_factory=list)
     analysis: DeepAnalysis

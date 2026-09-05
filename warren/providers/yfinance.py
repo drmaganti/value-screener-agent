@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from datetime import datetime, timezone
 from typing import Any
 
 import yfinance as yf
@@ -50,6 +51,10 @@ class YFinanceMarketDataProvider:
             enterprise_to_ebitda=_number(info.get("enterpriseToEbitda")),
             free_cash_flow=_number(info.get("freeCashflow")),
             operating_cash_flow=_number(info.get("operatingCashflow")),
+            total_cash=_number(info.get("totalCash")),
+            total_debt=_number(info.get("totalDebt")),
+            shares_outstanding=_number(info.get("sharesOutstanding")),
+            fetched_at=datetime.now(timezone.utc),
             revenue_growth=_number(info.get("revenueGrowth")),
             earnings_growth=_number(info.get("earningsGrowth")),
             gross_margin=_number(info.get("grossMargins")),
