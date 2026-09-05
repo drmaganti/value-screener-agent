@@ -143,6 +143,9 @@ def test_evidence_router_normalizes_and_deduplicates_claims():
     assert router_meta["raw_items"] == 7
     assert router_meta["normalized_claims"] == 5
     assert router_meta["deduplicated_items"] == 2
+    assert bundle.collected_at is not None
+    assert len(bundle.evidence_version) == 16
+    assert router_meta["evidence_version"] == bundle.evidence_version
 
 
 def test_exa_without_key_degrades_to_unavailable(monkeypatch):

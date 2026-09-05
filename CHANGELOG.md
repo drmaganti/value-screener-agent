@@ -8,6 +8,8 @@ All notable product/module changes should be recorded here.
 
 - Official SEC company-facts retrieval for selected US-GAAP XBRL fundamentals with period, form, filing date and accession provenance.
 - High-confidence normalized evidence claims for SEC XBRL facts and an Analyze-page fundamentals panel.
+- Deterministic evidence fingerprints and collection timestamps surfaced in every Deep evidence packet and Analyze report.
+- Validated claim-level citations connect generated conclusions to inspectable evidence.
 - Deterministic five-year DCF engine with Bear/Base/Bull scenarios, per-share values, implied upside/downside and a 3×3 discount-rate/terminal-growth sensitivity grid.
 - Explicit DCF unavailable states for missing inputs, non-positive free cash flow and invalid share counts.
 - Yahoo Finance snapshot inputs for cash, debt, shares outstanding and retrieval time.

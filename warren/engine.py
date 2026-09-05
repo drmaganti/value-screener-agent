@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from .models import DeepResponse, EvidenceBundle, MetricSnapshot, ScreenRequest, ScreenResponse, ScreenResult, SourceStatus
+from .models import DeepAnalysis, DeepResponse, EvidenceBundle, MetricSnapshot, ScreenRequest, ScreenResponse, ScreenResult, SourceStatus
 from .dcf import calculate_dcf
 from .protocols import DeepAnalysisProvider, EvidenceProvider, MarketDataProvider
 from .scoring import score_metrics
@@ -17,6 +17,28 @@ def missing_fields(metrics: MetricSnapshot) -> list[str]:
         for field, value in metrics.model_dump().items()
         if field not in _IGNORED_MISSING and value is None
     ]
+
+
+def validate_analysis_citations(analysis: DeepAnalysis, evidence: EvidenceBundle) -> DeepAnalysis:
+    """Keep only citations that point to a real claim and a real analysis item."""
+    valid_claim_ids = {claim.id for claim in evidence.claims}
+    section_lengths = {
+        "thesis": 1,
+        "positives": len(analysis.positives),
+        "concerns": len(analysis.concerns),
+        "bull_case": len(analysis.bull_case),
+        "bear_case": len(analysis.bear_case),
+        "risks": len(analysis.risks),
+        "what_would_change_view": len(analysis.what_would_change_view),
+    }
+    cleaned = []
+    for citation in analysis.citations:
+        if citation.item_index >= section_lengths[citation.section]:
+            continue
+        claim_ids = list(dict.fromkeys(claim_id for claim_id in citation.claim_ids if claim_id in valid_claim_ids))
+        if claim_ids:
+            cleaned.append(citation.model_copy(update={"claim_ids": claim_ids}))
+    return analysis.model_copy(update={"citations": cleaned})
 
 
 class Warren:
@@ -100,6 +122,7 @@ class Warren:
                 )
 
         analysis, model = await self.deep_analysis.analyze(metrics, scores, evidence)
+        analysis = validate_analysis_citations(analysis, evidence)
         return DeepResponse(
             ticker=metrics.ticker,
             metrics=metrics,

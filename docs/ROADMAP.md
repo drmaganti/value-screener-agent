@@ -25,27 +25,27 @@ Goal: a user can enter one ticker and receive a complete, understandable researc
 
 ### Core Analyze page
 
-- [ ] Dark Ask Warren web interface.
-- [ ] Ticker/company search and `Run Analysis` action.
-- [ ] Company header with price, market cap, sector, P/E and 52-week context.
-- [ ] Investment thesis.
-- [ ] Bull vs Bear case.
-- [ ] Dedicated risk review.
-- [ ] Quality / fundamentals / growth / financial-health presentation.
-- [ ] Valuation snapshot.
-- [ ] Earnings summary and estimate-revision evidence.
-- [ ] Recent news/evidence section with source status.
-- [ ] Final verdict: **Attractive / Watch / Avoid**.
-- [ ] Confidence: **High / Medium / Low**.
-- [ ] `What would change Warren's view?` section.
-- [ ] Clear research-only / not-investment-advice disclosure.
+- [x] Dark Ask Warren web interface.
+- [x] Ticker/company search and `Run Analysis` action.
+- [x] Company header with price, market cap, sector, P/E and 52-week context.
+- [x] Investment thesis.
+- [x] Bull vs Bear case.
+- [x] Dedicated risk review.
+- [x] Quality / fundamentals / growth / financial-health presentation.
+- [x] Valuation snapshot.
+- [x] Earnings summary and estimate-revision evidence.
+- [x] Recent news/evidence section with source status.
+- [x] Final verdict: **Attractive / Watch / Avoid**.
+- [x] Confidence: **High / Medium / Low**.
+- [x] `What would change Warren's view?` section.
+- [x] Clear research-only / not-investment-advice disclosure.
 
 ### Navigation
 
 For V1 only Analyze and Methodology need to be fully active.
 
 - [x] Methodology page.
-- [ ] Analyze page.
+- [x] Analyze page.
 - [ ] Watchlist — **Coming Soon**.
 - [ ] Screener — **Coming Soon**.
 - [ ] History — **Coming Soon**.
@@ -121,9 +121,9 @@ Remaining v0.3 quality work:
 - [ ] earnings release and guidance text;
 - [ ] full/licensed news content where terms permit;
 - [ ] industry and peer context provider;
-- [ ] stable evidence IDs and claim-level citations in generated output;
-- [ ] explicit evidence freshness/version metadata;
-- [ ] claim-level evidence checker;
+- [x] stable evidence IDs and claim-level citations in generated output;
+- [x] explicit evidence freshness/version metadata;
+- [x] claim-level evidence checker;
 - [ ] frozen factuality/evidence-overreach eval fixtures.
 
 Current Deep architecture:

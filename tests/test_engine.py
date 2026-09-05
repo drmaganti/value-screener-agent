@@ -4,9 +4,11 @@ import pytest
 
 from warren.engine import Warren
 from warren.models import (
+    AnalysisCitation,
     CategoryScores,
     DeepAnalysis,
     EvidenceBundle,
+    EvidenceClaim,
     MetricSnapshot,
     NewsEvidence,
     SourceStatus,
@@ -61,6 +63,16 @@ class FakeEvidence:
             raise RuntimeError("evidence unavailable")
         return EvidenceBundle(
             news=[NewsEvidence(title="Test headline", publisher="Test Publisher")],
+            claims=[
+                EvidenceClaim(
+                    id="claim-real",
+                    category="news",
+                    claim="Test headline",
+                    authority_tier=4,
+                    retrieval_depth="headline",
+                    confidence="low",
+                )
+            ],
             source_status=[SourceStatus(source="fake", status="ok")],
         )
 
@@ -89,6 +101,10 @@ class FakeDeepAnalysis:
                 what_would_change_view=["change"],
                 verdict="Test verdict",
                 confidence="medium",
+                citations=[
+                    AnalysisCitation(section="thesis", item_index=0, claim_ids=["claim-real", "invented"]),
+                    AnalysisCitation(section="bull_case", item_index=5, claim_ids=["claim-real"]),
+                ],
             ),
             "fake-model",
         )
@@ -137,6 +153,8 @@ async def test_deep_collects_and_passes_evidence_once():
     assert response.evidence.news[0].title == "Test headline"
     assert deep.last_evidence is not None
     assert deep.last_evidence.news[0].title == "Test headline"
+    assert len(response.analysis.citations) == 1
+    assert response.analysis.citations[0].claim_ids == ["claim-real"]
 
 
 @pytest.mark.asyncio

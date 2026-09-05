@@ -207,6 +207,8 @@ class EvidenceClaim(BaseModel):
 
 
 class EvidenceBundle(BaseModel):
+    collected_at: datetime | None = None
+    evidence_version: str | None = None
     filings: list[FilingEvidence] = Field(default_factory=list)
     sec_facts: list[SecFactEvidence] = Field(default_factory=list)
     news: list[NewsEvidence] = Field(default_factory=list)
@@ -222,6 +224,7 @@ class EvidenceBundle(BaseModel):
 
     def merge(self, other: "EvidenceBundle") -> "EvidenceBundle":
         return EvidenceBundle(
+            collected_at=max(filter(None, (self.collected_at, other.collected_at)), default=None),
             filings=[*self.filings, *other.filings],
             sec_facts=[*self.sec_facts, *other.sec_facts],
             news=[*self.news, *other.news],
@@ -237,6 +240,12 @@ class EvidenceBundle(BaseModel):
         )
 
 
+class AnalysisCitation(BaseModel):
+    section: Literal["thesis", "positives", "concerns", "bull_case", "bear_case", "risks", "what_would_change_view"]
+    item_index: int = Field(ge=0)
+    claim_ids: list[str] = Field(default_factory=list)
+
+
 class DeepAnalysis(BaseModel):
     thesis: str
     positives: list[str]
@@ -247,6 +256,7 @@ class DeepAnalysis(BaseModel):
     what_would_change_view: list[str]
     verdict: str
     confidence: Literal["low", "medium", "high"]
+    citations: list[AnalysisCitation] = Field(default_factory=list)
 
 
 class DcfScenario(BaseModel):

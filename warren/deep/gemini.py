@@ -97,7 +97,9 @@ The verdict MUST be exactly one of:
 - "avoid" — business, valuation, balance-sheet, structural-risk or evidence concerns make the setup unattractive.
 Do not output buy, hold, sell, strong buy, neutral, outperform, underperform or any other verdict vocabulary.
 
+For every conclusion that relies on evidence.claims, add a citation entry. Use only claim IDs present in the packet. item_index is zero-based; use 0 for thesis. Do not cite a claim merely because it is topically related, and do not cite deterministic metrics or scores as evidence claims.
+
 Return JSON only with exactly:
-{{"thesis":"string","positives":[3-5 strings],"concerns":[3-5 strings],"bull_case":[2-4 strings],"bear_case":[2-4 strings],"risks":[2-5 strings],"what_would_change_view":[2-4 strings],"verdict":"attractive|watch|avoid","confidence":"low|medium|high"}}."""
+{{"thesis":"string","positives":[3-5 strings],"concerns":[3-5 strings],"bull_case":[2-4 strings],"bear_case":[2-4 strings],"risks":[2-5 strings],"what_would_change_view":[2-4 strings],"verdict":"attractive|watch|avoid","confidence":"low|medium|high","citations":[{{"section":"thesis|positives|concerns|bull_case|bear_case|risks|what_would_change_view","item_index":0,"claim_ids":["exact-claim-id"]}}]}}."""
         final = await self._generate(final_prompt)
         return DeepAnalysis.model_validate(final), self.model

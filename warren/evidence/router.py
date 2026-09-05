@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from collections import defaultdict
+from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlunsplit
 
 from ..models import (
@@ -40,12 +42,19 @@ class EvidenceRouter:
         bundle = self.upstream.fetch_evidence(ticker, metrics)
         claims, duplicate_count = normalize_claims(bundle)
         bundle.claims = claims
+        bundle.collected_at = datetime.now(timezone.utc)
+        fingerprint_payload = [claim.model_dump(mode="json") for claim in claims]
+        bundle.evidence_version = hashlib.sha256(
+            json.dumps(fingerprint_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()[:16]
         bundle.metadata["evidence_router"] = {
             "version": self.VERSION,
             "raw_items": _raw_item_count(bundle),
             "normalized_claims": len(claims),
             "deduplicated_items": duplicate_count,
             "claim_categories": sorted({claim.category for claim in claims}),
+            "collected_at": bundle.collected_at.isoformat(),
+            "evidence_version": bundle.evidence_version,
         }
         return bundle
 
