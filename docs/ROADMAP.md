@@ -56,14 +56,14 @@ Do not add paid-plan UI until the product has demonstrated repeat value and ther
 
 ---
 
-## Ask Warren V1.1 — Transparent DCF valuation
+## Ask Warren V1.1 — Transparent DCF valuation (complete)
 
 Goal: add intrinsic-value analysis without creating false precision.
 
 - [x] Deterministic DCF engine independent of the LLM.
 - [x] Historical free-cash-flow normalization.
 - [x] Explicit forecast period.
-- [ ] Revenue / margin / FCF-growth assumptions.
+- [x] Revenue / margin / FCF-growth assumptions.
 - [x] WACC / discount-rate calculation or transparent configured assumption.
 - [x] Terminal-growth assumption.
 - [x] Net cash/debt adjustment.

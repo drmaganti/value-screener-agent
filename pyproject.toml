@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "warren-stock-intelligence"
-version = "0.3.3"
+version = "0.4.0"
 description = "Reusable stock screening and source-grounded TradingAgents-inspired deep research engine"
 readme = "README.md"
 requires-python = ">=3.12"

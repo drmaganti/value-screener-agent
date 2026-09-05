@@ -57,6 +57,7 @@ class YFinanceMarketDataProvider:
             currency=info.get("currency"),
             price=price,
             market_cap=_number(info.get("marketCap")),
+            total_revenue=_number(info.get("totalRevenue")),
             trailing_pe=_number(info.get("trailingPE")),
             forward_pe=_number(info.get("forwardPE")),
             peg_ratio=_number(info.get("pegRatio")),

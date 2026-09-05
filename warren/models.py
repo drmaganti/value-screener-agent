@@ -14,6 +14,7 @@ class MetricSnapshot(BaseModel):
     currency: str | None = None
     price: float | None = None
     market_cap: float | None = None
+    total_revenue: float | None = None
     trailing_pe: float | None = None
     forward_pe: float | None = None
     peg_ratio: float | None = None
@@ -236,6 +237,9 @@ class DcfScenario(BaseModel):
     name: Literal["bear", "base", "bull"]
     forecast_years: int
     fcf_growth: float
+    revenue_growth: float
+    starting_fcf_margin: float
+    ending_fcf_margin: float
     discount_rate: float
     terminal_growth: float
     fair_value_per_share: float

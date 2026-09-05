@@ -10,6 +10,7 @@ All notable product/module changes should be recorded here.
 - Explicit DCF unavailable states for missing inputs, non-positive free cash flow and invalid share counts.
 - Yahoo Finance snapshot inputs for cash, debt, shares outstanding and retrieval time.
 - Multi-year free-cash-flow normalization and bounded forward revenue/earnings growth anchors for DCF scenarios.
+- Explicit revenue-growth and FCF-margin paths for every DCF scenario, plus a rendered sensitivity table.
 - Company-specific CAPM-style discount rates using beta and capital structure, with explicit configured market assumptions and bounded fallbacks.
 - Public Ask Warren methodology page served at `GET /methodology` in the approved dark visual direction.
 - User-facing explanation of deterministic scoring, evidence discipline, Bull/Bear/Risk synthesis, verdict confidence and methodology versioning.
@@ -20,6 +21,7 @@ All notable product/module changes should be recorded here.
 ### Changed
 
 - Deep API responses and the Analyze page now expose the deterministic DCF result, normalization method, assumption basis, source and methodology version.
+- DCF methodology advanced to `dcf-v1.0`; application/package version advanced to `0.4.0`.
 - Expanded `docs/METHODOLOGY.md` from the initial score description into the full research-methodology contract for Warren and Ask Warren.
 - README now distinguishes the reusable Warren engine from the user-facing Ask Warren product and documents the public methodology route.
 

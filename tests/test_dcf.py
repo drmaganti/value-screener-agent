@@ -12,6 +12,7 @@ def test_dcf_produces_ordered_scenarios_and_sensitivity():
             ticker="TEST",
             price=100,
             free_cash_flow=10_000_000_000,
+            total_revenue=100_000_000_000,
             total_cash=20_000_000_000,
             total_debt=5_000_000_000,
             shares_outstanding=1_000_000_000,
@@ -24,7 +25,7 @@ def test_dcf_produces_ordered_scenarios_and_sensitivity():
     )
 
     assert result.status == "available"
-    assert result.methodology_version == "dcf-v0.3"
+    assert result.methodology_version == "dcf-v1.0"
     assert [scenario.name for scenario in result.scenarios] == ["bear", "base", "bull"]
     values = [scenario.fair_value_per_share for scenario in result.scenarios]
     assert values == sorted(values)
@@ -34,6 +35,9 @@ def test_dcf_produces_ordered_scenarios_and_sensitivity():
     assert result.normalization_method.startswith("Median")
     assert result.scenarios[1].fcf_growth == pytest.approx(0.09)
     assert "forward revenue/earnings" in result.scenarios[1].assumption_basis
+    assert result.scenarios[1].revenue_growth == pytest.approx(0.09)
+    assert result.scenarios[0].ending_fcf_margin < result.scenarios[0].starting_fcf_margin
+    assert result.scenarios[2].ending_fcf_margin > result.scenarios[2].starting_fcf_margin
     assert result.discount_rate_details.beta == 1.2
     assert result.discount_rate_details.debt_weight == pytest.approx(5 / 105)
     assert result.scenarios[1].discount_rate == pytest.approx(
@@ -47,6 +51,7 @@ def test_dcf_labels_beta_and_capital_structure_fallbacks():
             ticker="TEST",
             price=100,
             free_cash_flow=10_000_000_000,
+            total_revenue=100_000_000_000,
             total_cash=20_000_000_000,
             total_debt=5_000_000_000,
             shares_outstanding=1_000_000_000,
@@ -66,6 +71,7 @@ def test_dcf_uses_documented_fallbacks_when_history_and_estimates_are_sparse():
             ticker="TEST",
             price=100,
             free_cash_flow=10_000_000_000,
+            total_revenue=100_000_000_000,
             total_cash=20_000_000_000,
             total_debt=5_000_000_000,
             shares_outstanding=1_000_000_000,
@@ -95,6 +101,7 @@ def test_dcf_fails_transparently_when_inputs_are_unsuitable(updates, reason):
         "ticker": "TEST",
         "price": 100,
         "free_cash_flow": 10_000_000_000,
+        "total_revenue": 100_000_000_000,
         "total_cash": 20_000_000_000,
         "total_debt": 5_000_000_000,
         "shares_outstanding": 1_000_000_000,

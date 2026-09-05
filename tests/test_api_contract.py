@@ -54,6 +54,7 @@ def test_analyze_page_is_served():
     assert 'aria-live="polite"' in response.text
     assert "Data Gaps" in response.text
     assert "history.replaceState" in response.text
+    assert "Sensitivity" in response.text
 
 
 def test_methodology_page_is_served():
