@@ -260,6 +260,8 @@ Where available, forecast assumptions may be anchored by:
 
 The LLM may explain or challenge assumptions but may not silently replace the deterministic DCF calculation.
 
+The current `dcf-v0.2` implementation normalizes base FCF as the median of up to three positive annual observations when at least two are available. Otherwise it uses current FCF and labels that fallback explicitly. Base growth is anchored to the median of available Yahoo forward revenue and earnings growth estimates, bounded between 2% and 12%; when both estimates are unavailable, the documented fallback is 6%. Bear and Bull growth are deterministic adjustments around that base. Discount rates and terminal growth remain configured methodology assumptions rather than company-specific WACC estimates.
+
 ### Scenario model
 
 Warren should show at least three scenarios:

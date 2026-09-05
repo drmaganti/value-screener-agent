@@ -61,7 +61,7 @@ Do not add paid-plan UI until the product has demonstrated repeat value and ther
 Goal: add intrinsic-value analysis without creating false precision.
 
 - [x] Deterministic DCF engine independent of the LLM.
-- [ ] Historical free-cash-flow normalization.
+- [x] Historical free-cash-flow normalization.
 - [x] Explicit forecast period.
 - [ ] Revenue / margin / FCF-growth assumptions.
 - [x] WACC / discount-rate calculation or transparent configured assumption.
@@ -72,7 +72,7 @@ Goal: add intrinsic-value analysis without creating false precision.
 - [x] Bear / Base / Bull scenarios.
 - [x] Sensitivity matrix for WACC vs terminal growth.
 - [x] Visible source and timestamp for every DCF input.
-- [ ] Explain which assumptions are deterministic, consensus-derived or analyst-adjustable.
+- [x] Explain which assumptions are deterministic, consensus-derived or analyst-adjustable.
 - [x] Never let an LLM perform hidden arithmetic or silently change valuation assumptions.
 
 DCF should be presented as a **range of plausible values**, not a single authoritative target price.

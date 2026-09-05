@@ -25,6 +25,7 @@ class MetricSnapshot(BaseModel):
     total_debt: float | None = None
     shares_outstanding: float | None = None
     fetched_at: datetime | None = None
+    historical_free_cash_flow: list[float] = Field(default_factory=list)
     revenue_growth: float | None = None
     earnings_growth: float | None = None
     gross_margin: float | None = None
@@ -239,6 +240,7 @@ class DcfScenario(BaseModel):
     terminal_growth: float
     fair_value_per_share: float
     upside_downside: float | None = None
+    assumption_basis: str
 
 
 class DcfSensitivityPoint(BaseModel):
@@ -252,6 +254,7 @@ class DcfResult(BaseModel):
     methodology_version: str
     reason: str | None = None
     base_free_cash_flow: float | None = None
+    normalization_method: str | None = None
     net_cash: float | None = None
     shares_outstanding: float | None = None
     current_price: float | None = None

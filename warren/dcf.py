@@ -1,15 +1,34 @@
 from __future__ import annotations
 
+from statistics import median
+
 from .models import DcfResult, DcfScenario, DcfSensitivityPoint, MetricSnapshot
 
 
-DCF_VERSION = "dcf-v0.1"
+DCF_VERSION = "dcf-v0.2"
 FORECAST_YEARS = 5
-SCENARIOS = (
-    ("bear", 0.02, 0.11, 0.02),
-    ("base", 0.06, 0.10, 0.025),
-    ("bull", 0.09, 0.09, 0.03),
-)
+
+
+def _normalized_fcf(metrics: MetricSnapshot) -> tuple[float, str]:
+    positive_history = [value for value in metrics.historical_free_cash_flow if value > 0]
+    if len(positive_history) >= 2:
+        return median(positive_history[-3:]), "Median of up to three positive annual free-cash-flow observations"
+    return metrics.free_cash_flow, "Current free cash flow; insufficient positive annual history for normalization"
+
+
+def _growth_assumptions(metrics: MetricSnapshot) -> tuple[tuple[float, float, float], str]:
+    estimates = [
+        value
+        for value in (metrics.revenue_growth, metrics.earnings_growth)
+        if value is not None and -0.20 <= value <= 0.30
+    ]
+    if estimates:
+        base = min(0.12, max(0.02, median(estimates)))
+        basis = "Anchored to available Yahoo forward revenue/earnings growth estimates and bounded by methodology limits"
+    else:
+        base = 0.06
+        basis = "Configured fallback; forward revenue/earnings growth estimates unavailable"
+    return (max(-0.02, base - 0.04), base, min(0.15, base + 0.03)), basis
 
 
 def _value(
@@ -63,11 +82,19 @@ def calculate_dcf(metrics: MetricSnapshot) -> DcfResult:
             input_as_of=metrics.fetched_at,
         )
 
+    base_fcf, normalization_method = _normalized_fcf(metrics)
+    growth_rates, growth_basis = _growth_assumptions(metrics)
     net_cash = metrics.total_cash - metrics.total_debt
     scenarios = []
-    for name, growth, discount_rate, terminal_growth in SCENARIOS:
+    scenario_inputs = zip(
+        ("bear", "base", "bull"),
+        growth_rates,
+        (0.11, 0.10, 0.09),
+        (0.02, 0.025, 0.03),
+    )
+    for name, growth, discount_rate, terminal_growth in scenario_inputs:
         fair_value = _value(
-            metrics.free_cash_flow,
+            base_fcf,
             metrics.shares_outstanding,
             net_cash,
             growth,
@@ -84,6 +111,7 @@ def calculate_dcf(metrics: MetricSnapshot) -> DcfResult:
                 terminal_growth=terminal_growth,
                 fair_value_per_share=round(fair_value, 2),
                 upside_downside=upside,
+                assumption_basis=growth_basis,
             )
         )
 
@@ -96,10 +124,10 @@ def calculate_dcf(metrics: MetricSnapshot) -> DcfResult:
                     terminal_growth=terminal_growth,
                     fair_value_per_share=round(
                         _value(
-                            metrics.free_cash_flow,
+                            base_fcf,
                             metrics.shares_outstanding,
                             net_cash,
-                            0.06,
+                            growth_rates[1],
                             discount_rate,
                             terminal_growth,
                         ),
@@ -111,7 +139,8 @@ def calculate_dcf(metrics: MetricSnapshot) -> DcfResult:
     return DcfResult(
         status="available",
         methodology_version=DCF_VERSION,
-        base_free_cash_flow=metrics.free_cash_flow,
+        base_free_cash_flow=base_fcf,
+        normalization_method=normalization_method,
         net_cash=net_cash,
         shares_outstanding=metrics.shares_outstanding,
         current_price=metrics.price,
@@ -120,8 +149,8 @@ def calculate_dcf(metrics: MetricSnapshot) -> DcfResult:
         scenarios=scenarios,
         sensitivity=sensitivity,
         caveats=[
-            "Uses current free cash flow as the unnormalized base; historical normalization is not yet available.",
-            "Scenario assumptions are configured methodology inputs, not LLM-generated forecasts.",
+            normalization_method + ".",
+            growth_basis + ".",
             "DCF is one valuation lens and is highly sensitive to discount and terminal-growth assumptions.",
         ],
     )

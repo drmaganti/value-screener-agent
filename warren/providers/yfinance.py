@@ -36,6 +36,19 @@ class YFinanceMarketDataProvider:
             except Exception:
                 price = None
 
+        historical_fcf: list[float] = []
+        try:
+            cashflow = stock.cashflow
+            if cashflow is not None and not cashflow.empty and "Free Cash Flow" in cashflow.index:
+                historical_fcf = [
+                    number
+                    for value in cashflow.loc["Free Cash Flow"].tolist()
+                    if (number := _number(value)) is not None
+                ]
+                historical_fcf.reverse()
+        except Exception:
+            historical_fcf = []
+
         return MetricSnapshot(
             ticker=symbol,
             company_name=info.get("longName") or info.get("shortName"),
@@ -55,6 +68,7 @@ class YFinanceMarketDataProvider:
             total_debt=_number(info.get("totalDebt")),
             shares_outstanding=_number(info.get("sharesOutstanding")),
             fetched_at=datetime.now(timezone.utc),
+            historical_free_cash_flow=historical_fcf,
             revenue_growth=_number(info.get("revenueGrowth")),
             earnings_growth=_number(info.get("earningsGrowth")),
             gross_margin=_number(info.get("grossMargins")),
