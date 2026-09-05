@@ -51,6 +51,9 @@ def test_analyze_page_is_served():
     assert "Web Discovery" in response.text
     assert "Methodology" in response.text
     assert "Roadmap" in response.text
+    assert 'aria-live="polite"' in response.text
+    assert "Data Gaps" in response.text
+    assert "history.replaceState" in response.text
 
 
 def test_methodology_page_is_served():
